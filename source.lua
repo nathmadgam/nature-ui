@@ -15,24 +15,30 @@ FontRegular       = Enum.Font.Gotham,
 }
 
 local DEFAULT_THEME = {
-Primary = Color3.fromRGB(18, 28, 22),
-PrimaryLight = Color3.fromRGB(24, 36, 28),
+-- Main Glass Surfaces
+Primary = Color3.fromRGB(245, 245, 247),
+PrimaryLight = Color3.fromRGB(255, 255, 255),
 
-Secondary      = Color3.fromRGB(28, 42, 33),
-SecondaryLight = Color3.fromRGB(34, 52, 40),
+Secondary      = Color3.fromRGB(235, 235, 240),
+SecondaryLight = Color3.fromRGB(250, 250, 252),
 
-Accent         = Color3.fromRGB(52, 199, 89),
-AccentDim      = Color3.fromRGB(42, 170, 74),
+-- Apple Blue Accent
+Accent         = Color3.fromRGB(0, 122, 255),
+AccentDim      = Color3.fromRGB(10, 132, 255),
 
-Text           = Color3.fromRGB(255, 255, 255),
-TextDim        = Color3.fromRGB(205, 215, 208),
-TextMuted      = Color3.fromRGB(145, 160, 150),
+-- Text
+Text           = Color3.fromRGB(28, 28, 30),
+TextDim        = Color3.fromRGB(99, 99, 102),
+TextMuted      = Color3.fromRGB(142, 142, 147),
 
-Background     = Color3.fromRGB(14, 20, 17),
+-- Background
+Background     = Color3.fromRGB(255, 255, 255),
 
-Border         = Color3.fromRGB(75, 110, 86),
+-- Borders
+Border         = Color3.fromRGB(209, 209, 214),
 
-ToggleOff      = Color3.fromRGB(50, 62, 56),
+-- Controls
+ToggleOff      = Color3.fromRGB(229, 229, 234),
 ToggleThumb    = Color3.fromRGB(255, 255, 255),
 
 -- Shadow
