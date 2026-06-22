@@ -4,6 +4,7 @@ local RunService       = game:GetService("RunService")
 local Players          = game:GetService("Players")
 local CoreGui          = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
+
 local CONFIG = {
 AnimationDuration = 0.22,
 AnimationStyle    = Enum.EasingStyle.Quad,
@@ -14,28 +15,29 @@ FontRegular       = Enum.Font.Gotham,
 }
 
 local DEFAULT_THEME = {
-    Primary        = Color3.fromRGB(28, 37, 31),
-    PrimaryLight   = Color3.fromRGB(34, 46, 38),
+Primary = Color3.fromRGB(18, 28, 22),
+PrimaryLight = Color3.fromRGB(24, 36, 28),
 
-    Secondary      = Color3.fromRGB(40, 54, 44),
-    SecondaryLight = Color3.fromRGB(48, 64, 53),
+Secondary      = Color3.fromRGB(28, 42, 33),
+SecondaryLight = Color3.fromRGB(34, 52, 40),
 
-    Accent         = Color3.fromRGB(77, 214, 122),
-    AccentDim      = Color3.fromRGB(63, 175, 101),
+Accent         = Color3.fromRGB(52, 199, 89),
+AccentDim      = Color3.fromRGB(42, 170, 74),
 
-    Text           = Color3.fromRGB(255,255,255),
-    TextDim        = Color3.fromRGB(185,195,188),
-    TextMuted      = Color3.fromRGB(130,140,134),
+Text           = Color3.fromRGB(255, 255, 255),
+TextDim        = Color3.fromRGB(205, 215, 208),
+TextMuted      = Color3.fromRGB(145, 160, 150),
 
-    Background     = Color3.fromRGB(20,28,23),
+Background     = Color3.fromRGB(14, 20, 17),
 
-    Border         = Color3.fromRGB(65,85,72),
+Border         = Color3.fromRGB(75, 110, 86),
 
-    ToggleOff      = Color3.fromRGB(55,65,59),
+ToggleOff      = Color3.fromRGB(50, 62, 56),
+ToggleThumb    = Color3.fromRGB(255, 255, 255),
 
-    ToggleThumb    = Color3.fromRGB(255,255,255),
+-- Shadow
+Shadow         = Color3.fromRGB(0, 0, 0),
 
-    Shadow         = Color3.fromRGB(0,0,0),
 }
 
 local Util = {}
