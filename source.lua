@@ -15,36 +15,38 @@ FontRegular       = Enum.Font.Gotham,
 }
 
 local DEFAULT_THEME = {
--- Main Glass Surfaces
-Primary = Color3.fromRGB(245, 245, 247),
+-- Main Surface
+Primary = Color3.fromRGB(255, 255, 255),
 PrimaryLight = Color3.fromRGB(255, 255, 255),
 
-Secondary      = Color3.fromRGB(235, 235, 240),
-SecondaryLight = Color3.fromRGB(250, 250, 252),
+-- Panels
+Secondary = Color3.fromRGB(246, 248, 246),
+SecondaryLight = Color3.fromRGB(250, 251, 250),
 
--- Apple Blue Accent
-Accent         = Color3.fromRGB(0, 122, 255),
-AccentDim      = Color3.fromRGB(10, 132, 255),
+-- Apple Green
+Accent = Color3.fromRGB(52, 199, 89),
+AccentDim = Color3.fromRGB(48, 176, 79),
 
 -- Text
-Text           = Color3.fromRGB(28, 28, 30),
-TextDim        = Color3.fromRGB(99, 99, 102),
-TextMuted      = Color3.fromRGB(142, 142, 147),
+Text = Color3.fromRGB(28, 28, 30),
+TextDim = Color3.fromRGB(99, 99, 102),
+TextMuted = Color3.fromRGB(142, 142, 147),
 
 -- Background
-Background     = Color3.fromRGB(255, 255, 255),
+Background = Color3.fromRGB(255, 255, 255),
 
 -- Borders
-Border         = Color3.fromRGB(209, 209, 214),
+Border = Color3.fromRGB(225, 228, 225),
 
 -- Controls
-ToggleOff      = Color3.fromRGB(229, 229, 234),
-ToggleThumb    = Color3.fromRGB(255, 255, 255),
+ToggleOff = Color3.fromRGB(220, 220, 225),
+ToggleThumb = Color3.fromRGB(255, 255, 255),
 
 -- Shadow
-Shadow         = Color3.fromRGB(0, 0, 0),
+Shadow = Color3.fromRGB(0, 0, 0),
 
 }
+
 
 local Util = {}
 function Util.Create(className, props, children)
