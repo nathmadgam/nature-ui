@@ -1,65 +1,33 @@
---[[
-    ╔══════════════════════════════════════════════════════════════════════╗
-    ║                     NATURE UI FRAMEWORK  v3  (Glass)                   ║
-    ║   Apple-inspired glassmorphism Roblox UI framework. Light translucent  ║
-    ║   surfaces, soft gradients, frosted-glass panels, two curated themes   ║
-    ║   (Nature green + Apple), floating overlay dropdowns, automatic layout.║
-    ╠══════════════════════════════════════════════════════════════════════╣
-    ║  Architecture:                                                        ║
-    ║    Library → Signal, ThemeManager, LayoutManager, OverlayManager       ║
-    ║            → Window → Tab → Section → Components                       ║
-    ║                                                                       ║
-    ║  Curated themes only — no color picker, no RGB. Switch at runtime via   ║
-    ║  Library:SetTheme("Nature" | "Apple") or Library:NextTheme().          ║
-    ║                                                                       ║
-    ║  Works as BOTH a ModuleScript (require) and via loadstring/HttpGet.    ║
-    ╚══════════════════════════════════════════════════════════════════════╝
-]]
-
---==========================================================================--
---                              SERVICES                                    --
---==========================================================================--
 
 local TweenService     = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local RunService       = game:GetService("RunService")
 local Players          = game:GetService("Players")
 local CoreGui          = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 
---==========================================================================--
---                          GLOBAL CONFIG                                   --
---==========================================================================--
-
 local CONFIG = {
     AnimationDuration = 0.22,
-    AnimationStyle    = Enum.EasingStyle.Quint,  -- softer, Apple-like easing
+    AnimationStyle    = Enum.EasingStyle.Quint,
     AnimationDirection= Enum.EasingDirection.Out,
     Font              = Enum.Font.GothamMedium,
     FontBold          = Enum.Font.GothamBold,
     FontRegular       = Enum.Font.Gotham,
-    Debug             = false,  -- toggle structured logging
+    Debug             = false,
 }
 
--- 8-point spacing scale. Use Spacing[n] rather than raw numbers anywhere.
 local Spacing = {
     [1] = 4,  [2] = 8,  [3] = 12, [4] = 16,
     [6] = 24, [8] = 32, [10] = 40, [12] = 48, [16] = 64,
 }
 
--- Z-index layers so overlays never clip behind window content.
 local Z = {
     Window   = 1,
     Control  = 10,
     Trigger  = 20,
     Overlay  = 1000,
 }
-
---==========================================================================--
---                          DEBUG LOGGER                                    --
---==========================================================================--
--- Organized, readable logging. Enable with Library:SetDebug(true) or by
--- flipping CONFIG.Debug. Categories keep output scannable.
 
 local Logger = {}
 
@@ -82,64 +50,39 @@ function Logger.Toggle(...)  Logger.Log("TOGGLE", ...)  end
 function Logger.Exec(...)    Logger.Log("EXEC", ...)    end
 function Logger.UI(...)      Logger.Log("UI", ...)      end
 
---==========================================================================--
---                          CURATED THEMES                                  --
---==========================================================================--
--- Two polished, light, glassmorphism themes. No custom colors — these are the
--- only options. Each theme carries colors AND glass transparency values, since
--- frosted glass on Roblox is faked with semi-transparent fills over a gradient
--- backdrop (true blur isn't available).
---
--- Transparency fields (0 = opaque, 1 = invisible):
---   PanelT       : sidebar / content panel glass
---   ControlT     : control chips (buttons, dropdown triggers, toggles-off)
---   BackdropTop/Bottom : the window backdrop gradient colors
---   BackdropT    : backdrop fill transparency
-
 local THEMES = {}
 
--- NATURE — light green, soft white translucent glass, organic & calm. (default)
--- Tuned to match the reference: vivid green backdrop fading inward, very pale
--- near-white panels with a faint green tint, rich medium-green accent.
 THEMES.Nature = {
     Name           = "Nature",
-    -- Backdrop gradient (behind the glass) — vivid green edge → pale center.
-    BackdropTop    = Color3.fromRGB(120, 210, 140),
-    BackdropBottom = Color3.fromRGB(214, 242, 224),
+    BackdropTop    = Color3.fromRGB(126, 206, 146),
+    BackdropBottom = Color3.fromRGB(220, 244, 228),
     BackdropT      = 0.0,
-    -- Glass surfaces — very pale, almost white with the faintest green tint.
     Primary        = Color3.fromRGB(255, 255, 255),
     PrimaryLight   = Color3.fromRGB(255, 255, 255),
     Secondary      = Color3.fromRGB(250, 254, 251),
     SecondaryLight = Color3.fromRGB(244, 251, 247),
-    -- Panel gradient endpoints — subtle: bright white top → faint mint bottom.
-    PanelTop       = Color3.fromRGB(252, 255, 253),
-    PanelBottom    = Color3.fromRGB(236, 248, 240),
-    PanelT         = 0.18,   -- panels fairly solid so they don't look muddy
-    PanelTopT      = 0.06,   -- gentle fade so the gradient is soft, not heavy
-    PanelBottomT   = 0.26,
-    ControlT       = 0.28,   -- chips a touch more see-through than panels
-    ControlTopT    = 0.12,
-    ControlBottomT = 0.34,
-    -- Accent — rich, fresh medium green (matches the reference pill/toggle).
-    Accent         = Color3.fromRGB(64, 192, 87),
-    AccentTop      = Color3.fromRGB(78, 202, 100),
-    AccentBottom   = Color3.fromRGB(54, 180, 78),
-    AccentDim      = Color3.fromRGB(120, 214, 138),
-    AccentText     = Color3.fromRGB(255, 255, 255),  -- text on accent fills
-    -- Text — dark green-grey for contrast on light glass.
-    Text           = Color3.fromRGB(28, 50, 38),
-    TextDim        = Color3.fromRGB(82, 112, 94),
-    TextMuted      = Color3.fromRGB(146, 172, 156),
-    -- Borders — very soft mint (kept subtle; main frame has no stroke).
-    Border         = Color3.fromRGB(214, 236, 222),
+    PanelTop       = Color3.fromRGB(250, 254, 251),
+    PanelBottom    = Color3.fromRGB(232, 246, 237),
+    PanelT         = 0.32,
+    PanelTopT      = 0.10,
+    PanelBottomT   = 0.40,
+    ControlT       = 0.42,
+    ControlTopT    = 0.18,
+    ControlBottomT = 0.50,
+    Accent         = Color3.fromRGB(94, 196, 118),
+    AccentTop      = Color3.fromRGB(108, 206, 130),
+    AccentBottom   = Color3.fromRGB(82, 182, 106),
+    AccentDim      = Color3.fromRGB(150, 218, 168),
+    AccentText     = Color3.fromRGB(255, 255, 255),
+    Text           = Color3.fromRGB(34, 56, 44),
+    TextDim        = Color3.fromRGB(88, 116, 100),
+    TextMuted      = Color3.fromRGB(150, 174, 160),
+    Border         = Color3.fromRGB(216, 236, 224),
     BorderGlow     = Color3.fromRGB(255, 255, 255),
-    -- Controls.
-    ToggleOff      = Color3.fromRGB(210, 222, 214),
+    ToggleOff      = Color3.fromRGB(212, 224, 216),
     ToggleThumb    = Color3.fromRGB(255, 255, 255),
 }
 
--- APPLE — pure neutral white glass on light grey, iOS system blue accent.
 THEMES.Apple = {
     Name           = "Apple",
     BackdropTop    = Color3.fromRGB(228, 230, 236),
@@ -157,7 +100,7 @@ THEMES.Apple = {
     ControlT       = 0.36,
     ControlTopT    = 0.20,
     ControlBottomT = 0.48,
-    Accent         = Color3.fromRGB(10, 132, 255),   -- iOS system blue
+    Accent         = Color3.fromRGB(10, 132, 255),
     AccentTop      = Color3.fromRGB(40, 150, 255),
     AccentBottom   = Color3.fromRGB(0, 118, 246),
     AccentDim      = Color3.fromRGB(94, 174, 255),
@@ -171,47 +114,9 @@ THEMES.Apple = {
     ToggleThumb    = Color3.fromRGB(255, 255, 255),
 }
 
--- Ordered list for NextTheme() cycling.
 local THEME_ORDER = { "Nature", "Apple" }
 
--- The default theme (used at startup).
 local DEFAULT_THEME = THEMES.Nature
-
---==========================================================================--
---                          COLOR UTILITIES                                 --
---==========================================================================--
-
-local ColorUtil = {}
-
--- "#RRGGBB" or "RRGGBB" -> Color3
-function ColorUtil.FromHex(hex)
-    hex = tostring(hex):gsub("#", "")
-    if #hex == 3 then
-        -- expand shorthand like #0F8 -> #00FF88
-        hex = hex:sub(1,1):rep(2) .. hex:sub(2,2):rep(2) .. hex:sub(3,3):rep(2)
-    end
-    local r = tonumber(hex:sub(1, 2), 16) or 0
-    local g = tonumber(hex:sub(3, 4), 16) or 0
-    local b = tonumber(hex:sub(5, 6), 16) or 0
-    return Color3.fromRGB(r, g, b)
-end
-
--- Color3 -> "#RRGGBB"
-function ColorUtil.ToHex(color)
-    return string.format("#%02X%02X%02X",
-        math.floor(color.R * 255 + 0.5),
-        math.floor(color.G * 255 + 0.5),
-        math.floor(color.B * 255 + 0.5)
-    )
-end
-
-function ColorUtil.FromHSV(h, s, v)
-    return Color3.fromHSV(h, s, v)
-end
-
---==========================================================================--
---                              UTILITIES                                   --
---==========================================================================--
 
 local Util = {}
 
@@ -274,9 +179,6 @@ function Util.Gradient(parent, colorTop, colorBottom, rotation)
     })
 end
 
--- Glass gradient: a vertical color sheen PLUS a transparency ramp (more opaque
--- at the top, more translucent toward the bottom). This is what gives frosted
--- panels their dimensional, non-flat look. Returns the UIGradient.
 function Util.GlassGradient(parent, colorTop, colorBottom, transpTop, transpBottom, rotation)
     return Util.Create("UIGradient", {
         Color = ColorSequence.new({
@@ -292,14 +194,11 @@ function Util.GlassGradient(parent, colorTop, colorBottom, transpTop, transpBott
     })
 end
 
--- Soft rim: a thin stroke whose own gradient fades from a bright highlight at
--- the top to the border color at the bottom, so edges read as a lit glass rim
--- rather than a hard flat outline. Returns the UIStroke (gradient is its child).
 function Util.GlassStroke(parent, borderColor, glowColor, thickness)
     local stroke = Util.Create("UIStroke", {
         Color = Color3.fromRGB(255, 255, 255),
         Thickness = thickness or 1,
-        Transparency = 0.4,  -- softer base so the edge isn't a hard outline
+        Transparency = 0.4,
         ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
         Parent = parent,
     })
@@ -309,8 +208,7 @@ function Util.GlassStroke(parent, borderColor, glowColor, thickness)
             ColorSequenceKeypoint.new(0.5, borderColor or DEFAULT_THEME.Border),
             ColorSequenceKeypoint.new(1, borderColor or DEFAULT_THEME.Border),
         }),
-        -- Bright soft highlight at the very top, fading to nearly invisible —
-        -- a gentle lit rim, never a hard rectangular outline.
+
         Transparency = NumberSequence.new({
             NumberSequenceKeypoint.new(0, 0.35),
             NumberSequenceKeypoint.new(0.4, 0.7),
@@ -322,9 +220,28 @@ function Util.GlassStroke(parent, borderColor, glowColor, thickness)
     return stroke
 end
 
--- Apply the standard glass treatment to a control chip (button, trigger, box):
--- a vertical sheen gradient + a soft lit rim. Registers both with the theme
--- manager so theme swaps recolor them. `themeMgr` is the ThemeManager instance.
+function Util.InnerHighlight(parent)
+    local hl = Util.Create("Frame", {
+        Name = "InnerHighlight",
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 0.4,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(1, 0, 0, 1.5),
+        ZIndex = (parent.ZIndex or 1) + 1,
+        Parent = parent,
+    })
+    Util.Create("UIGradient", {
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 1),
+            NumberSequenceKeypoint.new(0.5, 0.25),
+            NumberSequenceKeypoint.new(1, 1),
+        }),
+        Parent = hl,
+    })
+    return hl
+end
+
 function Util.ChipGlass(frame, themeMgr)
     local t = themeMgr:Get()
     local grad = Util.GlassGradient(frame, t.PanelTop, t.PanelBottom,
@@ -350,16 +267,13 @@ function Util.ChipGlass(frame, themeMgr)
     return grad, stroke
 end
 
--- Lighter variant for chips that change BACKGROUND COLOR on hover (buttons).
--- Uses a transparency-only sheen (white→white, fade only) so it doesn't tint
--- the accent fill on hover, plus the soft lit rim. Returns grad, stroke.
 function Util.ChipSheen(frame, themeMgr)
     local t = themeMgr:Get()
     local grad = Util.Create("UIGradient", {
         Color = ColorSequence.new(Color3.fromRGB(255,255,255), Color3.fromRGB(255,255,255)),
         Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0.55),    -- faint highlight near top
-            NumberSequenceKeypoint.new(0.5, 1),     -- invisible through middle
+            NumberSequenceKeypoint.new(0, 0.55),
+            NumberSequenceKeypoint.new(0.5, 1),
             NumberSequenceKeypoint.new(1, 0.85),
         }),
         Rotation = 90, Parent = frame,
@@ -404,67 +318,51 @@ function Util.GetGuiParent()
     return CoreGui
 end
 
---==========================================================================--
---                          ICON LIBRARY                                    --
---==========================================================================--
--- ImageLabel-based icons. Every icon is a real ImageLabel. Named icons map to
--- default asset IDs below, but you can pass any "rbxassetid://..." string when
--- creating a window/tab to override. No frame-drawn glyphs are used.
-
 local Icons = {}
 
--- Default asset IDs for named icons (verified Lucide → Roblox mappings).
--- Override any of these, or pass your own rbxassetid:// directly to
--- AddTab / CreateWindow. To use a different named icon, see Icons.Library
--- or supply the raw asset id.
 Icons.Library = {
-    wrench    = "rbxassetid://10747383470", -- lucide-wrench (tools / configuration)
-    gear      = "rbxassetid://10734950309", -- lucide-settings
-    settings  = "rbxassetid://10734950309", -- lucide-settings
-    cog       = "rbxassetid://10709810948", -- lucide-cog
-    bug       = "rbxassetid://10709782845", -- lucide-bug (debug)
-    blocks    = "rbxassetid://10709782582", -- lucide-boxes (miscellaneous)
-    grid      = "rbxassetid://10723404936", -- lucide-grid
-    leaf      = "rbxassetid://10723425539", -- lucide-leaf (logo / nature)
-    sprout    = "rbxassetid://10734965572", -- lucide-sprout
-    home      = "rbxassetid://10723407389", -- lucide-home
-    star      = "rbxassetid://10734966248", -- lucide-star
-    chevron   = "rbxassetid://10709790948", -- lucide-chevron-down
-    chevronUp = "rbxassetid://10709791523", -- lucide-chevron-up
-    close     = "rbxassetid://10747384394", -- lucide-x
-    minimize  = "rbxassetid://10734896206", -- lucide-minus
-    copy      = "rbxassetid://10709812159", -- lucide-copy
-    check     = "rbxassetid://10709790644", -- lucide-check
-    rocket    = "rbxassetid://10734934585", -- lucide-rocket
-    zap       = "rbxassetid://10709790202", -- lucide-charge (lightning)
-    target    = "rbxassetid://10734977012", -- lucide-target
-    gamepad   = "rbxassetid://10723395215", -- lucide-gamepad-2
-    palette   = "rbxassetid://10734910430", -- lucide-palette
-    shield    = "rbxassetid://10734951847", -- lucide-shield
+    wrench    = "rbxassetid://10747383470",
+    gear      = "rbxassetid://10734950309",
+    settings  = "rbxassetid://10734950309",
+    cog       = "rbxassetid://10709810948",
+    bug       = "rbxassetid://10709782845",
+    blocks    = "rbxassetid://10709782582",
+    grid      = "rbxassetid://10723404936",
+    leaf      = "rbxassetid://10723425539",
+    sprout    = "rbxassetid://10734965572",
+    home      = "rbxassetid://10723407389",
+    star      = "rbxassetid://10734966248",
+    chevron   = "rbxassetid://10709790948",
+    chevronUp = "rbxassetid://10709791523",
+    close     = "rbxassetid://10747384394",
+    minimize  = "rbxassetid://10734896206",
+    copy      = "rbxassetid://10709812159",
+    check     = "rbxassetid://10709790644",
+    rocket    = "rbxassetid://10734934585",
+    zap       = "rbxassetid://10709790202",
+    target    = "rbxassetid://10734977012",
+    gamepad   = "rbxassetid://10723395215",
+    palette   = "rbxassetid://10734910430",
+    shield    = "rbxassetid://10734951847",
 }
 
--- Resolve a name OR raw asset id to an asset id string.
 function Icons.Resolve(nameOrId)
     if type(nameOrId) ~= "string" then
         return Icons.Library.blocks
     end
-    -- Already an asset reference of some form? use as-is.
+
     if nameOrId:match("rbxassetid://") or nameOrId:match("rbxasset://")
     or nameOrId:match("^%d+$") then
-        -- bare numeric id -> prefix it
+
         if nameOrId:match("^%d+$") then
             return "rbxassetid://" .. nameOrId
         end
         return nameOrId
     end
-    -- Named icon lookup.
+
     return Icons.Library[nameOrId] or Icons.Library.blocks
 end
 
--- Build an icon as an ImageLabel inside `parent`.
---   nameOrId : a named icon ("gear") OR a raw "rbxassetid://123" / numeric id.
---   color    : ImageColor3 tint.
--- Returns the holder Frame (the ImageLabel is named "Image" inside it).
 function Icons.Build(nameOrId, parent, color)
     local holder = Util.Create("Frame", {
         Name = "Icon",
@@ -484,8 +382,6 @@ function Icons.Build(nameOrId, parent, color)
     return holder
 end
 
--- Build a standalone chevron ImageLabel (used by dropdowns & sections).
--- Returns the ImageLabel itself so callers can tween its Rotation.
 function Icons.Chevron(parent, color)
     return Util.Create("ImageLabel", {
         Name = "Chevron",
@@ -497,10 +393,6 @@ function Icons.Chevron(parent, color)
         Parent = parent,
     })
 end
-
---==========================================================================--
---                              SIGNAL                                      --
---==========================================================================--
 
 local Signal = {}
 Signal.__index = Signal
@@ -560,10 +452,6 @@ function Signal:Destroy()
     table.clear(self._threads)
 end
 
---==========================================================================--
---                          CLEANER (MAID)                                  --
---==========================================================================--
-
 local Cleaner = {}
 Cleaner.__index = Cleaner
 
@@ -595,10 +483,6 @@ function Cleaner:Clean()
 end
 Cleaner.Destroy = Cleaner.Clean
 
---==========================================================================--
---                          THEME MANAGER                                   --
---==========================================================================--
-
 local ThemeManager = {}
 ThemeManager.__index = ThemeManager
 
@@ -613,7 +497,7 @@ end
 
 function ThemeManager:Register(inst, applier)
     table.insert(self._registry, { inst = inst, fn = applier })
-    -- Apply immediately, but never let a single bad applier abort registration.
+
     local ok, err = pcall(applier, inst, self.Theme)
     if not ok then
         Logger.Theme("applier error on register:", tostring(err))
@@ -628,19 +512,16 @@ function ThemeManager:GetCurrentName()
     return self.Current
 end
 
--- Re-apply the current theme table to every registered element. Each applier is
--- pcall-guarded so one failing element can NEVER halt the rest of the re-skin
--- (this was the cause of "theme switching doesn't work" — a partial update).
 function ThemeManager:_reapply()
     for i = #self._registry, 1, -1 do
         local entry = self._registry[i]
         local inst = entry.inst
         local alive
         if typeof(inst) == "Instance" then
-            -- An element is alive if it still has an ancestor (parented anywhere).
+
             alive = inst.Parent ~= nil
         else
-            alive = true  -- non-Instance registrants (rare) are always kept
+            alive = true
         end
         if alive then
             local ok, err = pcall(entry.fn, inst, self.Theme)
@@ -654,8 +535,6 @@ function ThemeManager:_reapply()
     self.Changed:Fire(self.Theme)
 end
 
--- Switch to a curated theme by name ("Nature" or "Apple"). Replaces the whole
--- theme table, so transparency + colors all update together.
 function ThemeManager:SetTheme(name)
     local theme = THEMES[name]
     if not theme then
@@ -669,7 +548,6 @@ function ThemeManager:SetTheme(name)
     return true
 end
 
--- Cycle to the next curated theme in THEME_ORDER.
 function ThemeManager:NextTheme()
     local idx = 1
     for i, n in ipairs(THEME_ORDER) do
@@ -678,10 +556,6 @@ function ThemeManager:NextTheme()
     local nextName = THEME_ORDER[(idx % #THEME_ORDER) + 1]
     return self:SetTheme(nextName)
 end
-
---==========================================================================--
---                          LAYOUT MANAGER                                  --
---==========================================================================--
 
 local LayoutManager = {}
 LayoutManager.__index = LayoutManager
@@ -718,13 +592,6 @@ function LayoutManager.BindScrollCanvas(scroll, layout)
     update()
 end
 
---==========================================================================--
---                          OVERLAY MANAGER                                 --
---==========================================================================--
--- All floating UI (dropdown menus, color pickers) is parented HERE, not inside
--- the window. This guarantees no layout reflow and no clipping: overlays float
--- above the entire interface at Z.Overlay. Only one overlay is open at a time.
-
 local OverlayManager = {}
 OverlayManager.__index = OverlayManager
 
@@ -737,13 +604,11 @@ function OverlayManager.new(gui)
         ZIndex = Z.Overlay,
         Parent = gui,
     })
-    self._active = nil       -- currently open overlay closer fn
-    self._activeOwner = nil  -- the component that owns the open overlay
+    self._active = nil
+    self._activeOwner = nil
     return self
 end
 
--- Open an overlay. closeFn closes it; owner identifies the component.
--- Automatically closes any previously open overlay first.
 function OverlayManager:Open(owner, closeFn)
     if self._active and self._activeOwner ~= owner then
         self._active()
@@ -771,10 +636,6 @@ function OverlayManager:Destroy()
     self:CloseAll()
     if self.Container then self.Container:Destroy() end
 end
-
---==========================================================================--
---                          BASE COMPONENT                                  --
---==========================================================================--
 
 local BaseComponent = {}
 BaseComponent.__index = BaseComponent
@@ -817,10 +678,6 @@ function BaseComponent:_makeRow(height)
     return row
 end
 
---==========================================================================--
---                              TOGGLE                                      --
---==========================================================================--
-
 local Toggle = setmetatable({}, { __index = BaseComponent })
 Toggle.__index = Toggle
 
@@ -856,8 +713,7 @@ function Toggle.new(section, text, onFn, offFn, default)
         Parent = row,
     })
     Util.Corner(13, track)
-    -- Clean flat pill — no gradient on the toggle track (gradient looked bad).
-    -- Register so a theme swap recolors an OFF toggle correctly.
+
     self._theme:Register(track, function(tr, t)
         tr.BackgroundColor3 = self._value and t.Accent or t.ToggleOff
     end)
@@ -872,7 +728,7 @@ function Toggle.new(section, text, onFn, offFn, default)
         Parent = track,
     })
     Util.Corner(10, thumb)
-    Util.Stroke(thumb, Color3.fromRGB(0, 0, 0), 1, 0.92)  -- faint lift on light track
+    Util.Stroke(thumb, Color3.fromRGB(0, 0, 0), 1, 0.92)
 
     local btn = Util.Create("TextButton", {
         BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Text = "", Parent = track,
@@ -918,10 +774,6 @@ function Toggle:Set(value)
     self.Changed:Fire(value)
 end
 
---==========================================================================--
---                              BUTTON                                      --
---==========================================================================--
-
 local Button = setmetatable({}, { __index = BaseComponent })
 Button.__index = Button
 
@@ -940,7 +792,7 @@ function Button.new(section, text, callback)
         Font = CONFIG.Font, Text = text, TextSize = 17,
         TextColor3 = theme.Text, Parent = row,
     })
-    Util.Corner(Spacing[3], btn)  -- rounder, Apple-like
+    Util.Corner(Spacing[3], btn)
     Util.ChipSheen(btn, self._theme)
     self._theme:Register(btn, function(b, t)
         b.TextColor3 = t.Text
@@ -990,13 +842,6 @@ function Button:_ripple(holder, x, y)
     task.delay(0.5, function() ripple:Destroy() end)
 end
 
---==========================================================================--
---                              DROPDOWN                                    --
---==========================================================================--
--- Floating overlay implementation. The menu is parented to the OverlayManager
--- container, positioned at the trigger's absolute screen coordinates. It never
--- changes section height, canvas size, or pushes sibling controls.
-
 local Dropdown = setmetatable({}, { __index = BaseComponent })
 Dropdown.__index = Dropdown
 
@@ -1021,7 +866,6 @@ function Dropdown.new(section, text, options, callback, default)
     })
     self._theme:Register(label, function(l, t) l.TextColor3 = t.Text end)
 
-    -- Trigger (always visible, lives in the row).
     local trigger = Util.Create("TextButton", {
         Name = "Trigger",
         AnchorPoint = Vector2.new(1, 0.5),
@@ -1064,14 +908,13 @@ function Dropdown.new(section, text, options, callback, default)
     self._theme:Register(self._arrow, function(a, t) a.ImageColor3 = t.Text end)
 
     self._cleaner:Add(trigger.MouseButton1Click:Connect(function() self:_toggleOpen() end))
-    -- Close the menu if the trigger scrolls off / window moves while open.
+
     self._cleaner:Add(trigger:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
         if self._open then self:_positionMenu() end
     end))
     return self
 end
 
--- Build (or rebuild) the floating menu inside the overlay container.
 function Dropdown:_buildMenu()
     if self._menu then self._menu:Destroy() end
     local theme = self._theme:Get()
@@ -1079,7 +922,7 @@ function Dropdown:_buildMenu()
     local menu = Util.Create("Frame", {
         Name = "DropdownMenu",
         BackgroundColor3 = theme.Primary,
-        BackgroundTransparency = 0.08,  -- nearly solid so options stay readable
+        BackgroundTransparency = 0.08,
         BorderSizePixel = 0,
         Size = UDim2.new(0, self._trigger.AbsoluteSize.X, 0, 0),
         ClipsDescendants = true,
@@ -1093,7 +936,8 @@ function Dropdown:_buildMenu()
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 1, 0),
         BorderSizePixel = 0, ScrollBarThickness = 3,
-        ScrollBarImageColor3 = theme.Accent,
+        ScrollBarImageColor3 = Color3.fromRGB(170, 170, 175),
+        ScrollBarImageTransparency = 0.4,
         CanvasSize = UDim2.new(0, 0, 0, 0),
         ZIndex = Z.Overlay + 2, Parent = menu,
     })
@@ -1128,13 +972,12 @@ function Dropdown:_buildMenu()
     self._menuScroll = scroll
 end
 
--- Position the menu directly under the trigger using absolute coords.
 function Dropdown:_positionMenu()
     if not self._menu then return end
     local pos  = self._trigger.AbsolutePosition
     local size = self._trigger.AbsoluteSize
     self._menu.Position = UDim2.new(0, pos.X, 0, pos.Y + size.Y + Spacing[1])
-    self._menu.Size = UDim2.new(0, size.X, 0, self._menu.Size.Y.Offset) -- width tracks trigger
+    self._menu.Size = UDim2.new(0, size.X, 0, self._menu.Size.Y.Offset)
 end
 
 function Dropdown:_toggleOpen(force)
@@ -1147,7 +990,7 @@ function Dropdown:_toggleOpen(force)
         local targetH = math.min(count * 32 + Spacing[2], 200)
         Util.Tween(self._menu, { Size = UDim2.new(0, self._trigger.AbsoluteSize.X, 0, targetH) })
         Util.Tween(self._arrow, { Rotation = 180 })
-        -- Register with overlay manager so opening another closes this.
+
         self._overlay:Open(self, function() self:_toggleOpen(false) end)
     else
         Util.Tween(self._arrow, { Rotation = 0 })
@@ -1185,10 +1028,6 @@ function Dropdown:Destroy()
     self._overlay:Close(self)
     BaseComponent.Destroy(self)
 end
-
---==========================================================================--
---                              SLIDER                                      --
---==========================================================================--
 
 local Slider = setmetatable({}, { __index = BaseComponent })
 Slider.__index = Slider
@@ -1286,10 +1125,6 @@ function Slider:Set(value)
     self.Changed:Fire(value)
 end
 
---==========================================================================--
---                              TEXTBOX                                     --
---==========================================================================--
-
 local Textbox = setmetatable({}, { __index = BaseComponent })
 Textbox.__index = Textbox
 
@@ -1318,8 +1153,7 @@ function Textbox.new(section, text, placeholder, callback)
     })
     Util.Corner(Spacing[3], boxFrame)
     Util.ChipGlass(boxFrame, self._theme)
-    -- Dedicated accent focus ring: invisible at rest, fades in on focus. Kept
-    -- separate from the glass rim so the two don't fight.
+
     local focusRing = Util.Create("UIStroke", {
         Color = theme.Accent, Thickness = 1.6, Transparency = 1,
         ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = boxFrame,
@@ -1358,10 +1192,6 @@ function Textbox:Set(value)
     self.Changed:Fire(self._value)
 end
 
---==========================================================================--
---                              LABEL                                       --
---==========================================================================--
-
 local Label = setmetatable({}, { __index = BaseComponent })
 Label.__index = Label
 
@@ -1387,10 +1217,6 @@ function Label:Set(value)
     self._label.Text = value
     self.Changed:Fire(value)
 end
-
---==========================================================================--
---                              PARAGRAPH                                   --
---==========================================================================--
 
 local Paragraph = setmetatable({}, { __index = BaseComponent })
 Paragraph.__index = Paragraph
@@ -1440,10 +1266,6 @@ function Paragraph:Set(body)
     self._body.Text = body
     self.Changed:Fire(body)
 end
-
---==========================================================================--
---                              KEYBIND                                     --
---==========================================================================--
 
 local Keybind = setmetatable({}, { __index = BaseComponent })
 Keybind.__index = Keybind
@@ -1505,10 +1327,6 @@ function Keybind:Set(keyCode)
     self.Changed:Fire(keyCode)
 end
 
---==========================================================================--
---                              SECTION                                     --
---==========================================================================--
-
 local Section = {}
 Section.__index = Section
 
@@ -1543,7 +1361,7 @@ function Section.new(tab, title)
         Position = UDim2.new(0, 0, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), Parent = header,
     })
     local chev = Icons.Chevron(chevHolder, theme.Text)
-    chev.Rotation = 180  -- points up when expanded
+    chev.Rotation = 180
     self._chev = chev
     self._theme:Register(chev, function(c, t) c.ImageColor3 = t.Text end)
 
@@ -1626,10 +1444,6 @@ function Section:Destroy()
     if self.Wrapper then self.Wrapper:Destroy() end
 end
 
---==========================================================================--
---                              TAB                                         --
---==========================================================================--
-
 local Tab = {}
 Tab.__index = Tab
 
@@ -1653,9 +1467,7 @@ function Tab.new(window, name, iconName)
     })
     Util.Corner(Spacing[3], button)
     self._button = button
-    -- Accent gradient for the active pill (top brighter → bottom deeper). The
-    -- gradient sits at full color; the button's BackgroundTransparency controls
-    -- whether the pill is visible (1 = inactive, 0 = active).
+
     local tabGrad = Util.Gradient(button, theme.AccentTop, theme.AccentBottom, 90)
     self._tabGrad = tabGrad
     self._theme:Register(button, function(b, t) b.BackgroundColor3 = t.Accent end)
@@ -1690,7 +1502,7 @@ function Tab.new(window, name, iconName)
     local page = Util.Create("ScrollingFrame", {
         Name = "Page_" .. name, Size = UDim2.new(1, 0, 1, 0),
         BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 4,
-        ScrollBarImageColor3 = theme.Accent, ScrollBarImageTransparency = 0.3,
+        ScrollBarImageColor3 = Color3.fromRGB(170, 170, 175), ScrollBarImageTransparency = 0.4,
         CanvasSize = UDim2.new(0, 0, 0, 0), Visible = false, Parent = window.ContentContainer,
     })
     Util.Padding(page, nil, { Top = Spacing[1], Bottom = Spacing[2], Left = Spacing[1], Right = Spacing[2] })
@@ -1746,14 +1558,10 @@ function Tab:Destroy()
     if self.Content then self.Content:Destroy() end
 end
 
---==========================================================================--
---                              WINDOW                                      --
---==========================================================================--
-
 local Window = {}
 Window.__index = Window
 
-local MIN_W, MIN_H = 540, 360  -- resize lower bounds
+local MIN_W, MIN_H = 540, 360
 
 function Window.new(library, opts)
     local self = setmetatable({}, Window)
@@ -1768,7 +1576,6 @@ function Window.new(library, opts)
 
     local theme = self._theme:Get()
 
-    -- ScreenGui -------------------------------------------------------------
     local gui = Util.Create("ScreenGui", {
         Name = "NatureUI", ResetOnSpawn = false,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
@@ -1781,13 +1588,9 @@ function Window.new(library, opts)
     local scale = Util.Create("UIScale", { Scale = 1, Parent = gui })
     self._scale = scale
 
-    -- Overlay manager (must be a sibling above the window). -----------------
     self._overlay = OverlayManager.new(gui)
     self._cleaner:Add(self._overlay)
 
-    -- Backdrop — a soft gradient panel that sits BEHIND the glass window so the
-    -- translucent surfaces have something to frost over. This is what sells the
-    -- glassmorphism on Roblox (no true blur available).
     local backdrop = Util.Create("Frame", {
         Name = "Backdrop", AnchorPoint = Vector2.new(0.5, 0.5),
         Position = UDim2.new(0.5, 0, 0.5, 0), Size = UDim2.new(0, 760, 0, 510),
@@ -1795,7 +1598,7 @@ function Window.new(library, opts)
         BorderSizePixel = 0, ZIndex = Z.Window, Parent = gui,
     })
     Util.Corner(Spacing[4] + 4, backdrop)
-    -- Diagonal multi-stop backdrop so the frosted panels pick up a soft glow.
+
     local backdropGrad = Util.Create("UIGradient", {
         Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0, theme.BackdropTop),
@@ -1817,18 +1620,16 @@ function Window.new(library, opts)
         })
     end)
 
-    -- Main window — translucent white glass panel with a faint sheen + lit rim.
     local main = Util.Create("Frame", {
         Name = "MainWindow", AnchorPoint = Vector2.new(0.5, 0.5),
         Position = UDim2.new(0.5, 0, 0.5, 0), Size = UDim2.new(0, 720, 0, 470),
         BackgroundColor3 = theme.PanelTop, BackgroundTransparency = theme.PanelT * 0.35,
         BorderSizePixel = 0,
-        ClipsDescendants = true,  -- prevents minimize content leak
+        ClipsDescendants = true,
         ZIndex = Z.Window + 1, Parent = gui,
     })
-    Util.Corner(Spacing[4] + 2, main)  -- larger Apple-style radius
-    -- No border stroke on the main frame — the soft backdrop behind it and the
-    -- gradient fill define the edge. A stroke here reads as a hard blocky outline.
+    Util.Corner(Spacing[4] + 2, main)
+
     local mainGrad = Util.GlassGradient(main, theme.PanelTop, theme.PanelBottom, 0.0, 0.14, 90)
     self.Main = main
     self._theme:Register(main, function(m, t)
@@ -1838,7 +1639,7 @@ function Window.new(library, opts)
     self._theme:Register(mainGrad, function(g, t)
         g.Color = ColorSequence.new(t.PanelTop, t.PanelBottom)
     end)
-    -- Keep backdrop locked behind the window as it drags/resizes.
+
     self._cleaner:Add(main:GetPropertyChangedSignal("Position"):Connect(function()
         backdrop.Position = main.Position
     end))
@@ -1847,15 +1648,12 @@ function Window.new(library, opts)
                                    main.Size.Y.Scale, main.Size.Y.Offset + 40)
     end))
 
-    -- Header ----------------------------------------------------------------
     local header = Util.Create("Frame", {
         Name = "Header", BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 64), Parent = main,
     })
     self.Header = header
 
-    -- Logo (icon placeholder slot — never collapses spacing). Accent-tinted so
-    -- it reads as a brand mark on the light glass header.
     local logoHolder = Util.Create("Frame", {
         Name = "LogoSlot", BackgroundTransparency = 1,
         Size = UDim2.new(0, 26, 0, 26), Position = UDim2.new(0, Spacing[6] - 2, 0.5, 0),
@@ -1867,8 +1665,6 @@ function Window.new(library, opts)
         self._theme:Register(logoImg, function(im, t) im.ImageColor3 = t.Accent end)
     end
 
-    -- Title + subtitle. Using one container with horizontal list keeps them
-    -- perfectly centered and correctly spaced regardless of title length.
     local titleHolder = Util.Create("Frame", {
         BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.X,
         Size = UDim2.new(0, 0, 1, 0), Position = UDim2.new(0, 60, 0, 0), Parent = header,
@@ -1893,7 +1689,6 @@ function Window.new(library, opts)
     self._subtitleLabel = subtitleLabel
     self._theme:Register(subtitleLabel, function(l, t) l.TextColor3 = t.TextDim end)
 
-    -- Window controls -------------------------------------------------------
     local function makeControl(symbol, xOffset, hoverColor)
         local btn = Util.Create("TextButton", {
             AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, xOffset, 0.5, 0),
@@ -1915,30 +1710,28 @@ function Window.new(library, opts)
     self._cleaner:Add(closeBtn.MouseButton1Click:Connect(function() self:Close() end))
     self._cleaner:Add(minBtn.MouseButton1Click:Connect(function() self:ToggleMinimize() end))
 
-    -- Divider.
     local divider = Util.Create("Frame", {
         BackgroundColor3 = theme.Border, BackgroundTransparency = 0.5, BorderSizePixel = 0,
         Size = UDim2.new(1, -Spacing[12] + 4, 0, 1), Position = UDim2.new(0, Spacing[6] - 2, 0, 64), Parent = main,
     })
     self._theme:Register(divider, function(d, t) d.BackgroundColor3 = t.Border end)
 
-    -- Body ------------------------------------------------------------------
     local body = Util.Create("Frame", {
         Name = "Body", BackgroundTransparency = 1,
         Position = UDim2.new(0, 0, 0, 72), Size = UDim2.new(1, 0, 1, -84), Parent = main,
     })
     self.Body = body
 
-    -- Sidebar — frosted glass panel with a vertical sheen + soft lit rim.
     local sidebar = Util.Create("Frame", {
         Name = "Sidebar", Position = UDim2.new(0, Spacing[4] + 2, 0, 0),
         Size = UDim2.new(0, 240, 1, 0), BackgroundColor3 = theme.PanelTop,
         BackgroundTransparency = theme.PanelT, BorderSizePixel = 0, Parent = body,
     })
-    Util.Corner(Spacing[4], sidebar)  -- Apple-style rounded
+    Util.Corner(Spacing[4] + 4, sidebar)
     local sidebarGrad = Util.GlassGradient(sidebar, theme.PanelTop, theme.PanelBottom,
         theme.PanelTopT, theme.PanelBottomT, 90)
-    local sidebarStroke = Util.GlassStroke(sidebar, theme.Border, theme.BorderGlow, 1.2)
+    local sidebarStroke = Util.GlassStroke(sidebar, theme.Border, theme.BorderGlow, 1)
+    Util.InnerHighlight(sidebar)
     self.Sidebar = sidebar
     self._theme:Register(sidebar, function(s, t)
         s.BackgroundColor3 = t.PanelTop
@@ -1969,16 +1762,16 @@ function Window.new(library, opts)
     LayoutManager.VerticalList(tabList, Spacing[2], Enum.HorizontalAlignment.Center)
     self.TabList = tabList
 
-    -- Content panel — frosted glass panel with sheen + soft lit rim.
     local contentPanel = Util.Create("Frame", {
         Name = "ContentPanel", Position = UDim2.new(0, 274, 0, 0),
         Size = UDim2.new(1, -292, 1, 0), BackgroundColor3 = theme.PanelTop,
         BackgroundTransparency = theme.PanelT, BorderSizePixel = 0, Parent = body,
     })
-    Util.Corner(Spacing[4], contentPanel)
+    Util.Corner(Spacing[4] + 4, contentPanel)
     local contentGrad = Util.GlassGradient(contentPanel, theme.PanelTop, theme.PanelBottom,
         theme.PanelTopT, theme.PanelBottomT, 90)
-    local contentStroke = Util.GlassStroke(contentPanel, theme.Border, theme.BorderGlow, 1.2)
+    local contentStroke = Util.GlassStroke(contentPanel, theme.Border, theme.BorderGlow, 1)
+    Util.InnerHighlight(contentPanel)
     self._contentPanel = contentPanel
     self._theme:Register(contentPanel, function(c, t)
         c.BackgroundColor3 = t.PanelTop
@@ -2009,24 +1802,46 @@ function Window.new(library, opts)
     })
     self.ContentContainer = contentContainer
 
-    -- Resize handle (bottom-right corner). ----------------------------------
     self:_setupResize(main)
-
-    -- Dragging & responsive scaling. ----------------------------------------
     self:_setupDragging(header, main)
     self:_setupViewportScaling()
 
-    -- Close any open overlay when the window itself is clicked elsewhere.
     self._cleaner:Add(UserInputService.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
             task.defer(function()
-                -- if the click wasn't on a trigger/menu, close overlays
                 self._overlay:CloseAll()
             end)
         end
     end))
+
+    self:_playOpen()
     return self
+end
+
+function Window:_playOpen()
+    local main = self.Main
+    local openScale = Util.Create("UIScale", { Scale = 0.94, Parent = main })
+    local baseT = self:_panelTransparency()
+    main.BackgroundTransparency = 1
+    if self.Backdrop then self.Backdrop.BackgroundTransparency = 1 end
+    for _, d in ipairs(main:GetDescendants()) do
+        if d:IsA("GuiObject") then
+            d.BackgroundTransparency = math.min(1, d.BackgroundTransparency + 0.6)
+        end
+    end
+    task.wait()
+    Util.Tween(openScale, { Scale = 1 }, 0.34, Enum.EasingStyle.Quint)
+    Util.Tween(main, { BackgroundTransparency = baseT }, 0.3)
+    if self.Backdrop then
+        Util.Tween(self.Backdrop, { BackgroundTransparency = self._theme:Get().BackdropT }, 0.34)
+    end
+    task.delay(0.04, function()
+        self._theme:_reapply()
+    end)
+    task.delay(0.4, function()
+        if openScale and openScale.Parent then openScale:Destroy() end
+    end)
 end
 
 function Window:_nextTabOrder()
@@ -2034,48 +1849,72 @@ function Window:_nextTabOrder()
     return self._tabOrder
 end
 
+function Window:_panelTransparency()
+    return self._theme:Get().PanelT * 0.35
+end
+
 function Window:_setupDragging(handle, target)
     local dragging, dragStart, startPos = false, nil, nil
+    local targetPos = target.Position
+    local renderConn = nil
+    local SMOOTH = 0.35
+
+    local function stopRender()
+        if renderConn then renderConn:Disconnect() renderConn = nil end
+    end
+
     self._cleaner:Add(handle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
-            dragging, dragStart, startPos = true, input.Position, target.Position
+            dragging = true
+            dragStart = input.Position
+            startPos = target.Position
+            targetPos = target.Position
+            Util.Tween(target, { BackgroundTransparency = self:_panelTransparency() * 0.6 }, 0.2)
+            if self.Backdrop then
+                Util.Tween(self.Backdrop, { Size = UDim2.new(0, target.AbsoluteSize.X + 70, 0, target.AbsoluteSize.Y + 70) }, 0.25)
+            end
+            stopRender()
+            renderConn = RunService.RenderStepped:Connect(function()
+                local cur = target.Position
+                local nx = cur.X.Offset + (targetPos.X.Offset - cur.X.Offset) * SMOOTH
+                local ny = cur.Y.Offset + (targetPos.Y.Offset - cur.Y.Offset) * SMOOTH
+                target.Position = UDim2.new(targetPos.X.Scale, nx, targetPos.Y.Scale, ny)
+            end)
         end
     end))
+
     self._cleaner:Add(UserInputService.InputChanged:Connect(function(input)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
         or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
-            target.Position = UDim2.new(
+            targetPos = UDim2.new(
                 startPos.X.Scale, startPos.X.Offset + delta.X,
                 startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end))
+
     self._cleaner:Add(UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch) then
+            dragging = false
+            Util.Tween(target, { Position = targetPos, BackgroundTransparency = self:_panelTransparency() }, 0.3, Enum.EasingStyle.Quint)
+            if self.Backdrop then
+                Util.Tween(self.Backdrop, { Size = UDim2.new(0, target.AbsoluteSize.X + 40, 0, target.AbsoluteSize.Y + 40) }, 0.35)
+            end
+            task.delay(0.32, stopRender)
+        end
     end))
+    self._cleaner:Add(stopRender)
 end
 
 function Window:_setupResize(main)
-    local theme = self._theme:Get()
     local handle = Util.Create("TextButton", {
         Name = "ResizeHandle", AnchorPoint = Vector2.new(1, 1),
-        Position = UDim2.new(1, -4, 1, -4), Size = UDim2.new(0, 16, 0, 16),
+        Position = UDim2.new(1, -4, 1, -4), Size = UDim2.new(0, 18, 0, 18),
         BackgroundTransparency = 1, Text = "", AutoButtonColor = false,
         ZIndex = Z.Control, Parent = main,
     })
-    -- visual grip (two diagonal lines) — plain frames, not the old glyph helper
-    local function gripLine(width, posX, posY)
-        Util.Create("Frame", {
-            BackgroundColor3 = theme.Border, BackgroundTransparency = 0.4,
-            BorderSizePixel = 0, AnchorPoint = Vector2.new(0.5, 0.5),
-            Size = UDim2.new(0, width, 0, 2), Position = UDim2.new(0.5, posX, 0.5, posY),
-            Rotation = -45, ZIndex = Z.Control, Parent = handle,
-        })
-    end
-    gripLine(10, 0, 2)
-    gripLine(5, 3, 5)
 
     local resizing, startPos, startSize = false, nil, nil
     self._cleaner:Add(handle.InputBegan:Connect(function(input)
@@ -2128,7 +1967,6 @@ end
 function Window:SetTitle(text) self._titleLabel.Text = text end
 function Window:SetSubtitle(text) self._subtitleLabel.Text = text end
 
--- Minimize: 1) clipping already on, 2) tween size, 3) tween transparency.
 function Window:ToggleMinimize()
     self._overlay:CloseAll()
     self._minimized = not self._minimized
@@ -2150,8 +1988,17 @@ end
 
 function Window:Close()
     self._overlay:CloseAll()
-    Util.Tween(self.Main, { Size = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1 }, 0.25)
-    task.delay(0.28, function() self:Destroy() end)
+    local main = self.Main
+    local closeScale = Util.Create("UIScale", { Scale = 1, Parent = main })
+    Util.Tween(closeScale, { Scale = 0.92 }, 0.26, Enum.EasingStyle.Quint)
+    Util.Tween(main, { BackgroundTransparency = 1 }, 0.24)
+    if self.Backdrop then Util.Tween(self.Backdrop, { BackgroundTransparency = 1 }, 0.24) end
+    for _, d in ipairs(main:GetDescendants()) do
+        if d:IsA("GuiObject") then
+            pcall(function() Util.Tween(d, { BackgroundTransparency = 1, TextTransparency = 1, ImageTransparency = 1 }, 0.22) end)
+        end
+    end
+    task.delay(0.3, function() self:Destroy() end)
 end
 
 function Window:Destroy()
@@ -2159,10 +2006,6 @@ function Window:Destroy()
     table.clear(self._tabs)
     self._cleaner:Clean()
 end
-
---==========================================================================--
---                              LIBRARY                                     --
---==========================================================================--
 
 local Library = {}
 Library.__index = Library
@@ -2182,38 +2025,31 @@ function Library:CreateWindow(opts)
     return window
 end
 
--- Curated themes only. name is "Nature" or "Apple".
 function Library:SetTheme(name)
     return self._theme:SetTheme(name)
 end
 
--- Cycle to the next curated theme.
 function Library:NextTheme()
     return self._theme:NextTheme()
 end
 
--- Returns the active theme table (read-only use).
 function Library:GetTheme()
     return self._theme:Get()
 end
 
--- Returns the current theme's name ("Nature" / "Apple").
 function Library:GetThemeName()
     return self._theme:GetCurrentName()
 end
 
--- List available curated theme names.
 function Library:GetThemes()
     return table.clone(THEME_ORDER)
 end
 
--- Enable / disable structured debug logging at runtime.
 function Library:SetDebug(enabled)
     CONFIG.Debug = enabled and true or false
     Logger.Init("Debug logging", CONFIG.Debug and "ENABLED" or "disabled")
 end
 
--- Subscribe to theme changes: fn(themeTable).
 function Library:OnThemeChanged(fn)
     return self._theme.Changed:Connect(fn)
 end
@@ -2228,16 +2064,9 @@ function Library:Destroy()
     Logger.Init("Library destroyed")
 end
 
--- Expose submodules & helpers for advanced users.
 Library.Signal = Signal
 Library.Cleaner = Cleaner
 Library.Spacing = Spacing
 Library.Logger = Logger
-
---==========================================================================--
---                          MODULE RETURN                                   --
---==========================================================================--
--- Returns a ready Library instance. Works as a ModuleScript (require) and via
--- loadstring: local Library = loadstring(game:HttpGet(RAW_URL))()
 
 return Library.new()
