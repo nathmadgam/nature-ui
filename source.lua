@@ -1,23 +1,18 @@
 --[[
     ╔══════════════════════════════════════════════════════════════════════╗
-    ║                       NATURE UI FRAMEWORK  v2                          ║
-    ║   A production-ready, fully object-oriented Roblox UI framework with   ║
-    ║   automatic layouting, floating overlay dropdowns, an 8-point spacing  ║
-    ║   system, live theming, and RGB / HSV / HEX color support.            ║
+    ║                     NATURE UI FRAMEWORK  v3  (Glass)                   ║
+    ║   Apple-inspired glassmorphism Roblox UI framework. Light translucent  ║
+    ║   surfaces, soft gradients, frosted-glass panels, two curated themes   ║
+    ║   (Nature green + Apple), floating overlay dropdowns, automatic layout.║
     ╠══════════════════════════════════════════════════════════════════════╣
     ║  Architecture:                                                        ║
-    ║    Library → Signal, ThemeManager, LayoutManager, OverlayManager      ║
+    ║    Library → Signal, ThemeManager, LayoutManager, OverlayManager       ║
     ║            → Window → Tab → Section → Components                       ║
     ║                                                                       ║
-    ║  No external assets. No drop shadows. Everything generated in code.    ║
+    ║  Curated themes only — no color picker, no RGB. Switch at runtime via   ║
+    ║  Library:SetTheme("Nature" | "Apple") or Library:NextTheme().          ║
     ║                                                                       ║
-    ║  LOADING (loadstring/executor):                                       ║
-    ║    local Library = loadstring(game:HttpGet(RAW_URL))()                 ║
-    ║                                                                       ║
-    ║  LOADING (ModuleScript):                                              ║
-    ║    local Library = require(game.ReplicatedStorage.NatureUI)           ║
-    ║                                                                       ║
-    ║  This file works as BOTH — it returns a ready Library instance.        ║
+    ║  Works as BOTH a ModuleScript (require) and via loadstring/HttpGet.    ║
     ╚══════════════════════════════════════════════════════════════════════╝
 ]]
 
@@ -38,11 +33,12 @@ local LocalPlayer = Players.LocalPlayer
 
 local CONFIG = {
     AnimationDuration = 0.22,
-    AnimationStyle    = Enum.EasingStyle.Quad,
+    AnimationStyle    = Enum.EasingStyle.Quint,  -- softer, Apple-like easing
     AnimationDirection= Enum.EasingDirection.Out,
     Font              = Enum.Font.GothamMedium,
     FontBold          = Enum.Font.GothamBold,
     FontRegular       = Enum.Font.Gotham,
+    Debug             = false,  -- toggle structured logging
 }
 
 -- 8-point spacing scale. Use Spacing[n] rather than raw numbers anywhere.
@@ -60,31 +56,105 @@ local Z = {
 }
 
 --==========================================================================--
---                          DEFAULT THEME                                   --
+--                          DEBUG LOGGER                                    --
 --==========================================================================--
+-- Organized, readable logging. Enable with Library:SetDebug(true) or by
+-- flipping CONFIG.Debug. Categories keep output scannable.
 
-local DEFAULT_THEME = {
-    -- Main window surface — deep, saturated emerald with a lively top sheen.
-    Primary        = Color3.fromRGB(22, 135, 70),
-    PrimaryLight   = Color3.fromRGB(52, 180, 100),
-    -- Panels (sidebar / content) — slightly deeper than the surface for depth.
-    Secondary      = Color3.fromRGB(30, 120, 68),
-    SecondaryLight = Color3.fromRGB(64, 178, 104),
-    -- Accent — bright, fresh spring green for toggles, fills, indicators.
-    Accent         = Color3.fromRGB(108, 230, 130),
-    AccentDim      = Color3.fromRGB(78, 198, 104),
-    -- Text.
-    Text           = Color3.fromRGB(248, 255, 249),
-    TextDim        = Color3.fromRGB(210, 235, 216),
-    TextMuted      = Color3.fromRGB(168, 206, 180),
-    -- Background base (darkest).
-    Background     = Color3.fromRGB(16, 96, 54),
-    -- Borders — luminous mint edge.
-    Border         = Color3.fromRGB(120, 214, 150),
+local Logger = {}
+
+local function _stamp()
+    return string.format("%.2f", os.clock())
+end
+
+function Logger.Log(category, ...)
+    if not CONFIG.Debug then return end
+    local parts = {}
+    for _, v in ipairs({ ... }) do
+        parts[#parts + 1] = tostring(v)
+    end
+    print(string.format("[Nature %s] [%s] %s", _stamp(), category, table.concat(parts, " ")))
+end
+
+function Logger.Init(...)    Logger.Log("INIT", ...)    end
+function Logger.Theme(...)   Logger.Log("THEME", ...)   end
+function Logger.Toggle(...)  Logger.Log("TOGGLE", ...)  end
+function Logger.Exec(...)    Logger.Log("EXEC", ...)    end
+function Logger.UI(...)      Logger.Log("UI", ...)      end
+
+--==========================================================================--
+--                          CURATED THEMES                                  --
+--==========================================================================--
+-- Two polished, light, glassmorphism themes. No custom colors — these are the
+-- only options. Each theme carries colors AND glass transparency values, since
+-- frosted glass on Roblox is faked with semi-transparent fills over a gradient
+-- backdrop (true blur isn't available).
+--
+-- Transparency fields (0 = opaque, 1 = invisible):
+--   PanelT       : sidebar / content panel glass
+--   ControlT     : control chips (buttons, dropdown triggers, toggles-off)
+--   BackdropTop/Bottom : the window backdrop gradient colors
+--   BackdropT    : backdrop fill transparency
+
+local THEMES = {}
+
+-- NATURE — light green, soft white translucent glass, organic & calm. (default)
+THEMES.Nature = {
+    Name           = "Nature",
+    -- Backdrop gradient (behind the glass) — pale mint → soft white.
+    BackdropTop    = Color3.fromRGB(222, 246, 230),
+    BackdropBottom = Color3.fromRGB(238, 250, 242),
+    BackdropT      = 0.02,
+    -- Glass surfaces — near-white, high transparency for frosted feel.
+    Primary        = Color3.fromRGB(255, 255, 255),
+    PrimaryLight   = Color3.fromRGB(255, 255, 255),
+    Secondary      = Color3.fromRGB(252, 255, 253),
+    SecondaryLight = Color3.fromRGB(244, 252, 247),
+    PanelT         = 0.35,  -- panels are glassy
+    ControlT       = 0.45,  -- chips slightly more see-through
+    -- Accent — light, fresh spring green.
+    Accent         = Color3.fromRGB(112, 214, 127),
+    AccentDim      = Color3.fromRGB(150, 226, 162),
+    AccentText     = Color3.fromRGB(255, 255, 255),  -- text on accent fills
+    -- Text — dark green-grey for contrast on light glass.
+    Text           = Color3.fromRGB(30, 54, 40),
+    TextDim        = Color3.fromRGB(78, 108, 90),
+    TextMuted      = Color3.fromRGB(140, 166, 150),
+    -- Borders — thin, soft mint.
+    Border         = Color3.fromRGB(206, 230, 214),
     -- Controls.
-    ToggleOff      = Color3.fromRGB(46, 132, 82),
-    ToggleThumb    = Color3.fromRGB(250, 255, 250),
+    ToggleOff      = Color3.fromRGB(214, 226, 218),
+    ToggleThumb    = Color3.fromRGB(255, 255, 255),
 }
+
+-- APPLE — pure neutral white glass on light grey, iOS system blue accent.
+THEMES.Apple = {
+    Name           = "Apple",
+    BackdropTop    = Color3.fromRGB(236, 238, 242),
+    BackdropBottom = Color3.fromRGB(246, 247, 250),
+    BackdropT      = 0.02,
+    Primary        = Color3.fromRGB(255, 255, 255),
+    PrimaryLight   = Color3.fromRGB(255, 255, 255),
+    Secondary      = Color3.fromRGB(255, 255, 255),
+    SecondaryLight = Color3.fromRGB(248, 249, 251),
+    PanelT         = 0.30,
+    ControlT       = 0.40,
+    Accent         = Color3.fromRGB(10, 132, 255),   -- iOS system blue
+    AccentDim      = Color3.fromRGB(94, 174, 255),
+    AccentText     = Color3.fromRGB(255, 255, 255),
+    Text           = Color3.fromRGB(28, 28, 30),
+    TextDim        = Color3.fromRGB(99, 99, 102),
+    TextMuted      = Color3.fromRGB(150, 150, 154),
+    Border         = Color3.fromRGB(224, 226, 230),
+    ToggleOff      = Color3.fromRGB(225, 226, 230),
+    ToggleThumb    = Color3.fromRGB(255, 255, 255),
+}
+
+-- Ordered list for NextTheme() cycling.
+local THEME_ORDER = { "Nature", "Apple" }
+
+-- The default theme (used at startup).
+local DEFAULT_THEME = THEMES.Nature
 
 --==========================================================================--
 --                          COLOR UTILITIES                                 --
@@ -410,6 +480,7 @@ ThemeManager.__index = ThemeManager
 function ThemeManager.new(theme)
     local self = setmetatable({}, ThemeManager)
     self.Theme = table.clone(theme or DEFAULT_THEME)
+    self.Current = self.Theme.Name or "Nature"
     self._registry = {}
     self.Changed = Signal.new()
     return self
@@ -424,10 +495,12 @@ function ThemeManager:Get()
     return self.Theme
 end
 
-function ThemeManager:Set(newColors)
-    for key, value in pairs(newColors) do
-        self.Theme[key] = value
-    end
+function ThemeManager:GetCurrentName()
+    return self.Current
+end
+
+-- Re-apply the current theme table to every registered element.
+function ThemeManager:_reapply()
     for i = #self._registry, 1, -1 do
         local entry = self._registry[i]
         local alive = (typeof(entry.inst) ~= "Instance") or (entry.inst.Parent ~= nil)
@@ -438,6 +511,31 @@ function ThemeManager:Set(newColors)
         end
     end
     self.Changed:Fire(self.Theme)
+end
+
+-- Switch to a curated theme by name ("Nature" or "Apple"). Replaces the whole
+-- theme table, so transparency + colors all update together.
+function ThemeManager:SetTheme(name)
+    local theme = THEMES[name]
+    if not theme then
+        Logger.Theme("Unknown theme:", tostring(name), "- keeping", self.Current)
+        return false
+    end
+    self.Theme = table.clone(theme)
+    self.Current = name
+    Logger.Theme("Switched to", name)
+    self:_reapply()
+    return true
+end
+
+-- Cycle to the next curated theme in THEME_ORDER.
+function ThemeManager:NextTheme()
+    local idx = 1
+    for i, n in ipairs(THEME_ORDER) do
+        if n == self.Current then idx = i break end
+    end
+    local nextName = THEME_ORDER[(idx % #THEME_ORDER) + 1]
+    return self:SetTheme(nextName)
 end
 
 --==========================================================================--
@@ -590,6 +688,7 @@ function Toggle.new(section, text, onFn, offFn, default)
     setmetatable(self, Toggle)
     self._onFn, self._offFn = onFn, offFn
     self._value = default or false
+    self._text = text
 
     local theme = self._theme:Get()
     local row = self:_makeRow(42)
@@ -616,6 +715,10 @@ function Toggle.new(section, text, onFn, offFn, default)
         Parent = row,
     })
     Util.Corner(13, track)
+    -- Register so a theme swap recolors an OFF toggle correctly.
+    self._theme:Register(track, function(tr, t)
+        tr.BackgroundColor3 = self._value and t.Accent or t.ToggleOff
+    end)
 
     local thumb = Util.Create("Frame", {
         Name = "Thumb",
@@ -627,6 +730,7 @@ function Toggle.new(section, text, onFn, offFn, default)
         Parent = track,
     })
     Util.Corner(10, thumb)
+    Util.Stroke(thumb, Color3.fromRGB(0, 0, 0), 1, 0.92)  -- faint lift on light track
 
     local btn = Util.Create("TextButton", {
         BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Text = "", Parent = track,
@@ -663,6 +767,7 @@ function Toggle:Set(value)
     if value == self._value then self:_render(true) return end
     self._value = value
     self:_render(true)
+    Logger.Toggle(self._text or "Toggle", "->", value and "ON" or "OFF")
     if value then
         if self._onFn then task.spawn(self._onFn) end
     else
@@ -688,27 +793,32 @@ function Button.new(section, text, callback)
     local btn = Util.Create("TextButton", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = theme.SecondaryLight,
+        BackgroundTransparency = theme.ControlT,
         AutoButtonColor = false, BorderSizePixel = 0,
         Font = CONFIG.Font, Text = text, TextSize = 17,
         TextColor3 = theme.Text, Parent = row,
     })
-    Util.Corner(Spacing[2], btn)
-    Util.Gradient(btn, theme.SecondaryLight, theme.Secondary, 90)
+    Util.Corner(Spacing[3], btn)  -- rounder, Apple-like
+    Util.Stroke(btn, theme.Border, 1, 0.4)
     self._theme:Register(btn, function(b, t)
-        b.TextColor3 = t.Text; b.BackgroundColor3 = t.SecondaryLight
+        b.TextColor3 = t.Text
+        b.BackgroundColor3 = t.SecondaryLight
+        b.BackgroundTransparency = t.ControlT
     end)
 
     local rippleHolder = Util.Create("Frame", {
         BackgroundTransparency = 1, ClipsDescendants = true,
         Size = UDim2.new(1, 0, 1, 0), Parent = btn,
     })
-    Util.Corner(Spacing[2], rippleHolder)
+    Util.Corner(Spacing[3], rippleHolder)
 
     self._cleaner:Add(btn.MouseEnter:Connect(function()
-        Util.Tween(btn, { BackgroundColor3 = self._theme:Get().Accent })
+        local t = self._theme:Get()
+        Util.Tween(btn, { BackgroundColor3 = t.Accent, BackgroundTransparency = 0, TextColor3 = t.AccentText }, 0.15)
     end))
     self._cleaner:Add(btn.MouseLeave:Connect(function()
-        Util.Tween(btn, { BackgroundColor3 = self._theme:Get().SecondaryLight })
+        local t = self._theme:Get()
+        Util.Tween(btn, { BackgroundColor3 = t.SecondaryLight, BackgroundTransparency = t.ControlT, TextColor3 = t.Text }, 0.15)
     end))
     self._cleaner:Add(btn.MouseButton1Down:Connect(function(x, y)
         self:_ripple(rippleHolder, x, y)
@@ -776,12 +886,16 @@ function Dropdown.new(section, text, options, callback, default)
         Position = UDim2.new(1, 0, 0.5, 0),
         Size = UDim2.new(0.46, 0, 0, 38),
         BackgroundColor3 = theme.SecondaryLight,
+        BackgroundTransparency = theme.ControlT,
         AutoButtonColor = false, BorderSizePixel = 0,
         Text = "", ZIndex = Z.Trigger, Parent = row,
     })
-    Util.Corner(Spacing[2], trigger)
-    Util.Gradient(trigger, theme.SecondaryLight, theme.Secondary, 90)
-    self._theme:Register(trigger, function(b, t) b.BackgroundColor3 = t.SecondaryLight end)
+    Util.Corner(Spacing[3], trigger)
+    Util.Stroke(trigger, theme.Border, 1, 0.4)
+    self._theme:Register(trigger, function(b, t)
+        b.BackgroundColor3 = t.SecondaryLight
+        b.BackgroundTransparency = t.ControlT
+    end)
     self._trigger = trigger
 
     local selected = Util.Create("TextLabel", {
@@ -805,6 +919,7 @@ function Dropdown.new(section, text, options, callback, default)
     })
     self._arrow = Icons.Chevron(arrowHolder, theme.Text)
     self._arrow.ZIndex = Z.Trigger
+    self._theme:Register(self._arrow, function(a, t) a.ImageColor3 = t.Text end)
 
     self._cleaner:Add(trigger.MouseButton1Click:Connect(function() self:_toggleOpen() end))
     -- Close the menu if the trigger scrolls off / window moves while open.
@@ -821,15 +936,16 @@ function Dropdown:_buildMenu()
 
     local menu = Util.Create("Frame", {
         Name = "DropdownMenu",
-        BackgroundColor3 = theme.Secondary,
+        BackgroundColor3 = theme.Primary,
+        BackgroundTransparency = 0.08,  -- nearly solid so options stay readable
         BorderSizePixel = 0,
         Size = UDim2.new(0, self._trigger.AbsoluteSize.X, 0, 0),
         ClipsDescendants = true,
         ZIndex = Z.Overlay + 1,
         Parent = self._overlay.Container,
     })
-    Util.Corner(Spacing[2], menu)
-    Util.Stroke(menu, theme.Border, 1, 0.35)
+    Util.Corner(Spacing[3], menu)
+    Util.Stroke(menu, theme.Border, 1, 0.25)
 
     local scroll = Util.Create("ScrollingFrame", {
         BackgroundTransparency = 1,
@@ -848,18 +964,18 @@ function Dropdown:_buildMenu()
         local optBtn = Util.Create("TextButton", {
             Size = UDim2.new(1, 0, 0, 30),
             BackgroundColor3 = isSel and theme.Accent or theme.SecondaryLight,
-            BackgroundTransparency = isSel and 0 or 0.4,
+            BackgroundTransparency = isSel and 0 or 0.55,
             AutoButtonColor = false, BorderSizePixel = 0,
             Font = CONFIG.Font, Text = tostring(opt), TextSize = 16,
-            TextColor3 = theme.Text, LayoutOrder = i,
+            TextColor3 = isSel and theme.AccentText or theme.Text, LayoutOrder = i,
             ZIndex = Z.Overlay + 3, Parent = scroll,
         })
-        Util.Corner(Spacing[1] + 2, optBtn)
+        Util.Corner(Spacing[2], optBtn)
         optBtn.MouseEnter:Connect(function()
-            if opt ~= self._value then Util.Tween(optBtn, { BackgroundTransparency = 0.1 }, 0.1) end
+            if opt ~= self._value then Util.Tween(optBtn, { BackgroundTransparency = 0.2 }, 0.1) end
         end)
         optBtn.MouseLeave:Connect(function()
-            if opt ~= self._value then Util.Tween(optBtn, { BackgroundTransparency = 0.4 }, 0.1) end
+            if opt ~= self._value then Util.Tween(optBtn, { BackgroundTransparency = 0.55 }, 0.1) end
         end)
         optBtn.MouseButton1Click:Connect(function()
             self:Set(opt)
@@ -1055,11 +1171,15 @@ function Textbox.new(section, text, placeholder, callback)
     local boxFrame = Util.Create("Frame", {
         AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0),
         Size = UDim2.new(0.46, 0, 0, 36), BackgroundColor3 = theme.SecondaryLight,
+        BackgroundTransparency = theme.ControlT,
         BorderSizePixel = 0, Parent = row,
     })
-    Util.Corner(Spacing[2], boxFrame)
-    local stroke = Util.Stroke(boxFrame, theme.Border, 1, 0.6)
-    self._theme:Register(boxFrame, function(b, t) b.BackgroundColor3 = t.SecondaryLight end)
+    Util.Corner(Spacing[3], boxFrame)
+    local stroke = Util.Stroke(boxFrame, theme.Border, 1, 0.4)
+    self._theme:Register(boxFrame, function(b, t)
+        b.BackgroundColor3 = t.SecondaryLight
+        b.BackgroundTransparency = t.ControlT
+    end)
 
     local input = Util.Create("TextBox", {
         BackgroundTransparency = 1, Size = UDim2.new(1, -20, 1, 0),
@@ -1135,14 +1255,18 @@ function Paragraph.new(section, title, body)
     self.Instance = row
 
     local container = Util.Create("Frame", {
-        BackgroundColor3 = theme.Secondary, BackgroundTransparency = 0.3,
+        BackgroundColor3 = theme.SecondaryLight, BackgroundTransparency = theme.ControlT,
         Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
         BorderSizePixel = 0, Parent = row,
     })
-    Util.Corner(Spacing[2], container)
+    Util.Corner(Spacing[3], container)
+    Util.Stroke(container, theme.Border, 1, 0.45)
     Util.Padding(container, Spacing[3])
     LayoutManager.VerticalList(container, Spacing[1] + 2, Enum.HorizontalAlignment.Left)
-    self._theme:Register(container, function(c, t) c.BackgroundColor3 = t.Secondary end)
+    self._theme:Register(container, function(c, t)
+        c.BackgroundColor3 = t.SecondaryLight
+        c.BackgroundTransparency = t.ControlT
+    end)
 
     local titleLabel = Util.Create("TextLabel", {
         BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 22),
@@ -1196,12 +1320,17 @@ function Keybind.new(section, text, defaultKey, callback)
     local keyBtn = Util.Create("TextButton", {
         AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0),
         Size = UDim2.new(0, 110, 0, 34), BackgroundColor3 = theme.SecondaryLight,
+        BackgroundTransparency = theme.ControlT,
         AutoButtonColor = false, BorderSizePixel = 0, Font = CONFIG.Font,
         Text = self._value.Name, TextSize = 15, TextColor3 = theme.Text, Parent = row,
     })
-    Util.Corner(Spacing[2], keyBtn)
+    Util.Corner(Spacing[3], keyBtn)
+    Util.Stroke(keyBtn, theme.Border, 1, 0.4)
     self._keyBtn = keyBtn
-    self._theme:Register(keyBtn, function(b, t) b.BackgroundColor3 = t.SecondaryLight; b.TextColor3 = t.Text end)
+    self._theme:Register(keyBtn, function(b, t)
+        b.BackgroundColor3 = t.SecondaryLight; b.TextColor3 = t.Text
+        b.BackgroundTransparency = t.ControlT
+    end)
 
     self._cleaner:Add(keyBtn.MouseButton1Click:Connect(function()
         self._listening = true
@@ -1225,283 +1354,6 @@ function Keybind:Set(keyCode)
     self._value = keyCode
     self._keyBtn.Text = keyCode.Name
     self.Changed:Fire(keyCode)
-end
-
---==========================================================================--
---                          COLOR PICKER                                    --
---==========================================================================--
--- Floating overlay color picker with SV box, hue bar, HEX input (copy/paste),
--- and live preview. Renders in the OverlayManager container like dropdowns.
-
-local ColorPicker = setmetatable({}, { __index = BaseComponent })
-ColorPicker.__index = ColorPicker
-
-function ColorPicker.new(section, text, defaultColor, callback)
-    local self = BaseComponent.new(section)
-    setmetatable(self, ColorPicker)
-    self._callback = callback
-    self._value = defaultColor or Color3.fromRGB(0, 255, 0)
-    self._open = false
-    self._h, self._s, self._v = self._value:ToHSV()
-
-    local theme = self._theme:Get()
-    local row = self:_makeRow(40)
-    self.Instance = row
-
-    local label = Util.Create("TextLabel", {
-        BackgroundTransparency = 1, Size = UDim2.new(0.7, 0, 1, 0),
-        Font = CONFIG.Font, Text = text, TextSize = 18, TextColor3 = theme.Text,
-        TextXAlignment = Enum.TextXAlignment.Left, Parent = row,
-    })
-    self._theme:Register(label, function(l, t) l.TextColor3 = t.Text end)
-
-    local swatch = Util.Create("TextButton", {
-        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0),
-        Size = UDim2.new(0, 50, 0, 28), BackgroundColor3 = self._value,
-        AutoButtonColor = false, BorderSizePixel = 0, Text = "",
-        ZIndex = Z.Trigger, Parent = row,
-    })
-    Util.Corner(Spacing[1] + 2, swatch)
-    Util.Stroke(swatch, theme.Border, 1, 0.4)
-    self._swatch = swatch
-
-    self._cleaner:Add(swatch.MouseButton1Click:Connect(function() self:_togglePopup() end))
-    self._cleaner:Add(swatch:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
-        if self._open then self:_positionPopup() end
-    end))
-    return self
-end
-
-function ColorPicker:_buildPopup()
-    if self._popup then self._popup:Destroy() end
-    local theme = self._theme:Get()
-
-    local popup = Util.Create("Frame", {
-        Name = "ColorPicker",
-        Size = UDim2.new(0, 220, 0, 0), BackgroundColor3 = theme.Secondary,
-        BorderSizePixel = 0, ClipsDescendants = true,
-        ZIndex = Z.Overlay + 1, Parent = self._overlay.Container,
-    })
-    Util.Corner(Spacing[2], popup)
-    Util.Stroke(popup, theme.Border, 1, 0.4)
-    self._popup = popup
-
-    local inner = Util.Create("Frame", {
-        BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0),
-        ZIndex = Z.Overlay + 2, Parent = popup,
-    })
-    Util.Padding(inner, Spacing[3])
-    LayoutManager.VerticalList(inner, Spacing[2], Enum.HorizontalAlignment.Center)
-
-    -- SV box.
-    local svBox = Util.Create("ImageButton", {
-        Size = UDim2.new(1, 0, 0, 120), BackgroundColor3 = Color3.fromHSV(self._h, 1, 1),
-        BorderSizePixel = 0, AutoButtonColor = false,
-        ZIndex = Z.Overlay + 2, Parent = inner,
-    })
-    Util.Corner(Spacing[1] + 2, svBox)
-    Util.Create("UIGradient", {
-        Color = ColorSequence.new(Color3.new(1,1,1), Color3.new(1,1,1)),
-        Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 1),
-        }), Parent = svBox,
-    })
-    local valOverlay = Util.Create("Frame", {
-        Size = UDim2.new(1,0,1,0), BackgroundColor3 = Color3.new(0,0,0),
-        BorderSizePixel = 0, ZIndex = Z.Overlay + 2, Parent = svBox,
-    })
-    Util.Corner(Spacing[1] + 2, valOverlay)
-    Util.Create("UIGradient", {
-        Color = ColorSequence.new(Color3.new(0,0,0), Color3.new(0,0,0)),
-        Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, 0),
-        }), Rotation = 90, Parent = valOverlay,
-    })
-    self._svBox = svBox
-
-    local svCursor = Util.Create("Frame", {
-        Size = UDim2.new(0, 8, 0, 8), AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = Color3.new(1,1,1), BorderSizePixel = 0,
-        Position = UDim2.new(self._s, 0, 1 - self._v, 0),
-        ZIndex = Z.Overlay + 3, Parent = svBox,
-    })
-    Util.Corner(4, svCursor)
-    Util.Stroke(svCursor, Color3.new(0,0,0), 1, 0)
-    self._svCursor = svCursor
-
-    -- Hue bar.
-    local hueBar = Util.Create("ImageButton", {
-        Size = UDim2.new(1, 0, 0, 16), BorderSizePixel = 0,
-        AutoButtonColor = false, ZIndex = Z.Overlay + 2, Parent = inner,
-    })
-    Util.Corner(Spacing[1] + 2, hueBar)
-    Util.Create("UIGradient", {
-        Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255,0,0)),
-            ColorSequenceKeypoint.new(0.17, Color3.fromRGB(255,255,0)),
-            ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0,255,0)),
-            ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0,255,255)),
-            ColorSequenceKeypoint.new(0.67, Color3.fromRGB(0,0,255)),
-            ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255,0,255)),
-            ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255,0,0)),
-        }), Parent = hueBar,
-    })
-    self._hueBar = hueBar
-    local hueCursor = Util.Create("Frame", {
-        Size = UDim2.new(0, 4, 1, 4), AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.new(self._h, 0, 0.5, 0), BackgroundColor3 = Color3.new(1,1,1),
-        BorderSizePixel = 0, ZIndex = Z.Overlay + 3, Parent = hueBar,
-    })
-    Util.Corner(2, hueCursor)
-    Util.Stroke(hueCursor, Color3.new(0,0,0), 1, 0)
-    self._hueCursor = hueCursor
-
-    -- HEX input row (copy/paste).
-    local hexRow = Util.Create("Frame", {
-        BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 30),
-        ZIndex = Z.Overlay + 2, Parent = inner,
-    })
-    local hexBox = Util.Create("Frame", {
-        Size = UDim2.new(1, -36, 1, 0), BackgroundColor3 = theme.SecondaryLight,
-        BorderSizePixel = 0, ZIndex = Z.Overlay + 2, Parent = hexRow,
-    })
-    Util.Corner(Spacing[1] + 2, hexBox)
-    local hexInput = Util.Create("TextBox", {
-        BackgroundTransparency = 1, Size = UDim2.new(1, -16, 1, 0),
-        Position = UDim2.new(0, 10, 0, 0), Font = CONFIG.Font,
-        Text = ColorUtil.ToHex(self._value), TextSize = 15, TextColor3 = theme.Text,
-        TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false,
-        ZIndex = Z.Overlay + 3, Parent = hexBox,
-    })
-    self._hexInput = hexInput
-
-    -- Copy button.
-    local copyBtn = Util.Create("TextButton", {
-        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0),
-        Size = UDim2.new(0, 30, 1, 0), BackgroundColor3 = theme.SecondaryLight,
-        AutoButtonColor = false, BorderSizePixel = 0, Font = CONFIG.FontBold,
-        Text = "⧉", TextSize = 16, TextColor3 = theme.Text,
-        ZIndex = Z.Overlay + 3, Parent = hexRow,
-    })
-    Util.Corner(Spacing[1] + 2, copyBtn)
-
-    -- Interactions ----------------------------------------------------------
-    local svDragging, hueDragging = false, false
-    local function updateSV(x, y)
-        local rx = math.clamp((x - svBox.AbsolutePosition.X) / svBox.AbsoluteSize.X, 0, 1)
-        local ry = math.clamp((y - svBox.AbsolutePosition.Y) / svBox.AbsoluteSize.Y, 0, 1)
-        self._s, self._v = rx, 1 - ry
-        svCursor.Position = UDim2.new(rx, 0, ry, 0)
-        self:_apply(true)
-    end
-    local function updateHue(x)
-        local rx = math.clamp((x - hueBar.AbsolutePosition.X) / hueBar.AbsoluteSize.X, 0, 1)
-        self._h = rx
-        hueCursor.Position = UDim2.new(rx, 0, 0.5, 0)
-        svBox.BackgroundColor3 = Color3.fromHSV(self._h, 1, 1)
-        self:_apply(true)
-    end
-
-    svBox.MouseButton1Down:Connect(function(x, y) svDragging = true; updateSV(x, y) end)
-    hueBar.MouseButton1Down:Connect(function(x) hueDragging = true; updateHue(x) end)
-    self._popupConns = {
-        UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.Touch then
-                svDragging, hueDragging = false, false
-            end
-        end),
-        UserInputService.InputChanged:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseMovement
-            or input.UserInputType == Enum.UserInputType.Touch then
-                if svDragging then updateSV(input.Position.X, input.Position.Y) end
-                if hueDragging then updateHue(input.Position.X) end
-            end
-        end),
-    }
-
-    -- HEX paste: apply typed hex on focus lost.
-    hexInput.FocusLost:Connect(function()
-        local ok, color = pcall(ColorUtil.FromHex, hexInput.Text)
-        if ok and color then
-            self:Set(color)
-        else
-            hexInput.Text = ColorUtil.ToHex(self._value)
-        end
-    end)
-    -- HEX copy.
-    copyBtn.MouseButton1Click:Connect(function()
-        local hex = ColorUtil.ToHex(self._value)
-        if setclipboard then pcall(setclipboard, hex) end
-        local old = copyBtn.Text
-        copyBtn.Text = "✓"
-        task.delay(0.8, function() if copyBtn then copyBtn.Text = old end end)
-    end)
-end
-
-function ColorPicker:_positionPopup()
-    if not self._popup then return end
-    local pos  = self._swatch.AbsolutePosition
-    local size = self._swatch.AbsoluteSize
-    -- Right-align popup to the swatch's right edge.
-    local px = pos.X + size.X - 220
-    self._popup.Position = UDim2.new(0, px, 0, pos.Y + size.Y + Spacing[1])
-end
-
-function ColorPicker:_apply(skipSet)
-    local color = Color3.fromHSV(self._h, self._s, self._v)
-    self._value = color
-    self._swatch.BackgroundColor3 = color
-    if self._hexInput then self._hexInput.Text = ColorUtil.ToHex(color) end
-    if self._callback then task.spawn(self._callback, color) end
-    self.Changed:Fire(color)
-end
-
-function ColorPicker:_togglePopup()
-    self._open = not self._open
-    if self._open then
-        self:_buildPopup()
-        self:_positionPopup()
-        Util.Tween(self._popup, { Size = UDim2.new(0, 220, 0, 230) })
-        self._overlay:Open(self, function() self:_togglePopup() end)
-    else
-        self:_closePopup()
-        self._overlay:Close(self)
-    end
-end
-
-function ColorPicker:_closePopup()
-    self._open = false
-    if self._popupConns then
-        for _, c in ipairs(self._popupConns) do c:Disconnect() end
-        self._popupConns = nil
-    end
-    if self._popup then
-        local popup = self._popup
-        self._popup = nil
-        Util.Tween(popup, { Size = UDim2.new(0, 220, 0, 0) })
-        task.delay(CONFIG.AnimationDuration, function() if popup then popup:Destroy() end end)
-    end
-end
-
-function ColorPicker:Set(color)
-    self._value = color
-    self._h, self._s, self._v = color:ToHSV()
-    self._swatch.BackgroundColor3 = color
-    if self._svBox then
-        self._svBox.BackgroundColor3 = Color3.fromHSV(self._h, 1, 1)
-        self._svCursor.Position = UDim2.new(self._s, 0, 1 - self._v, 0)
-        self._hueCursor.Position = UDim2.new(self._h, 0, 0.5, 0)
-        self._hexInput.Text = ColorUtil.ToHex(color)
-    end
-    if self._callback then task.spawn(self._callback, color) end
-    self.Changed:Fire(color)
-end
-
-function ColorPicker:Destroy()
-    self:_closePopup()
-    self._overlay:Close(self)
-    BaseComponent.Destroy(self)
 end
 
 --==========================================================================--
@@ -1544,6 +1396,7 @@ function Section.new(tab, title)
     local chev = Icons.Chevron(chevHolder, theme.Text)
     chev.Rotation = 180  -- points up when expanded
     self._chev = chev
+    self._theme:Register(chev, function(c, t) c.ImageColor3 = t.Text end)
 
     local titleLabel = Util.Create("TextLabel", {
         BackgroundTransparency = 1, Position = UDim2.new(0, 36, 0, 0),
@@ -1616,9 +1469,6 @@ end
 function Section:AddKeybind(text, defaultKey, callback)
     return registerComponent(self, Keybind.new(self, text, defaultKey, callback))
 end
-function Section:AddColorPicker(text, defaultColor, callback)
-    return registerComponent(self, ColorPicker.new(self, text, defaultColor, callback))
-end
 
 function Section:Destroy()
     for _, comp in ipairs(self._components) do comp:Destroy() end
@@ -1647,37 +1497,42 @@ function Tab.new(window, name, iconName)
     local theme = self._theme:Get()
 
     local button = Util.Create("TextButton", {
-        Name = "Tab_" .. name, Size = UDim2.new(1, 0, 0, 50),
-        BackgroundColor3 = theme.SecondaryLight, BackgroundTransparency = 1,
+        Name = "Tab_" .. name, Size = UDim2.new(1, 0, 0, 46),
+        BackgroundColor3 = theme.Accent, BackgroundTransparency = 1,
         AutoButtonColor = false, BorderSizePixel = 0, Text = "",
         LayoutOrder = window:_nextTabOrder(), Parent = window.TabList,
     })
-    Util.Corner(Spacing[2] + 2, button)
+    Util.Corner(Spacing[3], button)
     self._button = button
-
-    local highlight = Util.Create("Frame", {
-        Name = "Highlight", Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = theme.SecondaryLight, BackgroundTransparency = 1,
-        BorderSizePixel = 0, Parent = button,
-    })
-    Util.Corner(Spacing[2] + 2, highlight)
-    Util.Gradient(highlight, theme.SecondaryLight, theme.Secondary, 0)
-    self._highlight = highlight
+    -- Active fill is the button's own background tinted accent; we tween its
+    -- transparency. Register so theme swaps recolor it.
+    self._theme:Register(button, function(b, t)
+        b.BackgroundColor3 = t.Accent
+    end)
 
     local iconHolder = Util.Create("Frame", {
-        BackgroundTransparency = 1, Size = UDim2.new(0, 26, 0, 26),
-        Position = UDim2.new(0, Spacing[4], 0.5, 0), AnchorPoint = Vector2.new(0, 0.5),
+        BackgroundTransparency = 1, Size = UDim2.new(0, 22, 0, 22),
+        Position = UDim2.new(0, Spacing[3] + 2, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5),
         ZIndex = 2, Parent = button,
     })
-    Icons.Build(iconName or "blocks", iconHolder, theme.Text)
+    local iconWrap = Icons.Build(iconName or "blocks", iconHolder, theme.Text)
+    self._iconImage = iconWrap:FindFirstChild("Image")
+    self._theme:Register(iconHolder, function(_, t)
+        if self._iconImage then
+            self._iconImage.ImageColor3 = self._active and t.AccentText or t.Text
+        end
+    end)
 
     local label = Util.Create("TextLabel", {
-        BackgroundTransparency = 1, Position = UDim2.new(0, 54, 0, 0),
-        Size = UDim2.new(1, -60, 1, 0), Font = CONFIG.Font, Text = name,
-        TextSize = 19, TextColor3 = theme.Text,
+        BackgroundTransparency = 1, Position = UDim2.new(0, 48, 0, 0),
+        Size = UDim2.new(1, -54, 1, 0), Font = CONFIG.Font, Text = name,
+        TextSize = 18, TextColor3 = theme.Text,
         TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 2, Parent = button,
     })
-    self._theme:Register(label, function(l, t) l.TextColor3 = t.Text end)
+    self._label = label
+    self._theme:Register(label, function(l, t)
+        l.TextColor3 = self._active and t.AccentText or t.Text
+    end)
 
     local page = Util.Create("ScrollingFrame", {
         Name = "Page_" .. name, Size = UDim2.new(1, 0, 1, 0),
@@ -1692,7 +1547,7 @@ function Tab.new(window, name, iconName)
 
     self._cleaner:Add(button.MouseButton1Click:Connect(function() window:_selectTab(self) end))
     self._cleaner:Add(button.MouseEnter:Connect(function()
-        if not self._active then Util.Tween(button, { BackgroundTransparency = 0.85 }, 0.12) end
+        if not self._active then Util.Tween(button, { BackgroundTransparency = 0.88 }, 0.12) end
     end))
     self._cleaner:Add(button.MouseLeave:Connect(function()
         if not self._active then Util.Tween(button, { BackgroundTransparency = 1 }, 0.12) end
@@ -1708,12 +1563,19 @@ end
 function Tab:_setActive(active)
     self._active = active
     self.Content.Visible = active
+    local t = self._theme:Get()
     if active then
-        Util.Tween(self._button, { BackgroundTransparency = 1 }, 0.15)
-        Util.Tween(self._highlight, { BackgroundTransparency = 0.15 }, 0.2)
+        Util.Tween(self._button, { BackgroundTransparency = 0 }, 0.18)
+        Util.Tween(self._label, { TextColor3 = t.AccentText }, 0.18)
+        if self._iconImage then
+            Util.Tween(self._iconImage, { ImageColor3 = t.AccentText }, 0.18)
+        end
     else
-        Util.Tween(self._highlight, { BackgroundTransparency = 1 }, 0.2)
-        Util.Tween(self._button, { BackgroundTransparency = 1 }, 0.15)
+        Util.Tween(self._button, { BackgroundTransparency = 1 }, 0.18)
+        Util.Tween(self._label, { TextColor3 = t.Text }, 0.18)
+        if self._iconImage then
+            Util.Tween(self._iconImage, { ImageColor3 = t.Text }, 0.18)
+        end
     end
 end
 
@@ -1770,19 +1632,50 @@ function Window.new(library, opts)
     self._overlay = OverlayManager.new(gui)
     self._cleaner:Add(self._overlay)
 
-    -- Main window (NO drop shadow — borders + gradient for hierarchy). ------
+    -- Backdrop — a soft gradient panel that sits BEHIND the glass window so the
+    -- translucent surfaces have something to frost over. This is what sells the
+    -- glassmorphism on Roblox (no true blur available).
+    local backdrop = Util.Create("Frame", {
+        Name = "Backdrop", AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(0.5, 0, 0.5, 0), Size = UDim2.new(0, 760, 0, 510),
+        BackgroundColor3 = theme.BackdropTop, BackgroundTransparency = theme.BackdropT,
+        BorderSizePixel = 0, ZIndex = Z.Window, Parent = gui,
+    })
+    Util.Corner(Spacing[4] + 4, backdrop)
+    local backdropGrad = Util.Gradient(backdrop, theme.BackdropTop, theme.BackdropBottom, 145)
+    self.Backdrop = backdrop
+    self._theme:Register(backdrop, function(b, t)
+        b.BackgroundColor3 = t.BackdropTop
+        b.BackgroundTransparency = t.BackdropT
+    end)
+    self._theme:Register(backdropGrad, function(g, t)
+        g.Color = ColorSequence.new(t.BackdropTop, t.BackdropBottom)
+    end)
+
+    -- Main window — translucent white glass panel.
     local main = Util.Create("Frame", {
         Name = "MainWindow", AnchorPoint = Vector2.new(0.5, 0.5),
         Position = UDim2.new(0.5, 0, 0.5, 0), Size = UDim2.new(0, 720, 0, 470),
-        BackgroundColor3 = theme.Primary, BorderSizePixel = 0,
+        BackgroundColor3 = theme.Primary, BackgroundTransparency = theme.PanelT * 0.4,
+        BorderSizePixel = 0,
         ClipsDescendants = true,  -- prevents minimize content leak
-        ZIndex = Z.Window, Parent = gui,
+        ZIndex = Z.Window + 1, Parent = gui,
     })
-    Util.Corner(Spacing[3] + 2, main)
-    Util.Gradient(main, theme.PrimaryLight, theme.Primary, 135)
-    Util.Stroke(main, theme.Border, 1.5, 0.3)
+    Util.Corner(Spacing[4] + 2, main)  -- larger Apple-style radius
+    Util.Stroke(main, theme.Border, 1, 0.2)
     self.Main = main
-    self._theme:Register(main, function(m, t) m.BackgroundColor3 = t.Primary end)
+    self._theme:Register(main, function(m, t)
+        m.BackgroundColor3 = t.Primary
+        m.BackgroundTransparency = t.PanelT * 0.4
+    end)
+    -- Keep backdrop locked behind the window as it drags/resizes.
+    self._cleaner:Add(main:GetPropertyChangedSignal("Position"):Connect(function()
+        backdrop.Position = main.Position
+    end))
+    self._cleaner:Add(main:GetPropertyChangedSignal("Size"):Connect(function()
+        backdrop.Size = UDim2.new(main.Size.X.Scale, main.Size.X.Offset + 40,
+                                   main.Size.Y.Scale, main.Size.Y.Offset + 40)
+    end))
 
     -- Header ----------------------------------------------------------------
     local header = Util.Create("Frame", {
@@ -1791,13 +1684,18 @@ function Window.new(library, opts)
     })
     self.Header = header
 
-    -- Logo (icon placeholder slot — never collapses spacing). ---------------
+    -- Logo (icon placeholder slot — never collapses spacing). Accent-tinted so
+    -- it reads as a brand mark on the light glass header.
     local logoHolder = Util.Create("Frame", {
         Name = "LogoSlot", BackgroundTransparency = 1,
-        Size = UDim2.new(0, 28, 0, 28), Position = UDim2.new(0, Spacing[6] - 2, 0.5, 0),
+        Size = UDim2.new(0, 26, 0, 26), Position = UDim2.new(0, Spacing[6] - 2, 0.5, 0),
         AnchorPoint = Vector2.new(0, 0.5), Parent = header,
     })
-    Icons.Build(opts.Icon or "leaf", logoHolder, theme.Text)
+    local logoWrap = Icons.Build(opts.Icon or "leaf", logoHolder, theme.Accent)
+    local logoImg = logoWrap:FindFirstChild("Image")
+    if logoImg then
+        self._theme:Register(logoImg, function(im, t) im.ImageColor3 = t.Accent end)
+    end
 
     -- Title + subtitle. Using one container with horizontal list keeps them
     -- perfectly centered and correctly spaced regardless of title length.
@@ -1842,8 +1740,8 @@ function Window.new(library, opts)
         end)
         return btn
     end
-    local closeBtn = makeControl("×", -Spacing[4], Color3.fromRGB(200, 70, 70))
-    local minBtn   = makeControl("–", -Spacing[12] + 2, theme.SecondaryLight)
+    local closeBtn = makeControl("×", -Spacing[4], Color3.fromRGB(255, 90, 90))
+    local minBtn   = makeControl("–", -Spacing[12] + 2, Color3.fromRGB(160, 170, 175))
     self._cleaner:Add(closeBtn.MouseButton1Click:Connect(function() self:Close() end))
     self._cleaner:Add(minBtn.MouseButton1Click:Connect(function() self:ToggleMinimize() end))
 
@@ -1861,41 +1759,45 @@ function Window.new(library, opts)
     })
     self.Body = body
 
-    -- Sidebar.
+    -- Sidebar — frosted glass panel.
     local sidebar = Util.Create("Frame", {
         Name = "Sidebar", Position = UDim2.new(0, Spacing[4] + 2, 0, 0),
-        Size = UDim2.new(0, 270, 1, 0), BackgroundColor3 = theme.Secondary,
-        BackgroundTransparency = 0.25, BorderSizePixel = 0, Parent = body,
+        Size = UDim2.new(0, 240, 1, 0), BackgroundColor3 = theme.Secondary,
+        BackgroundTransparency = theme.PanelT, BorderSizePixel = 0, Parent = body,
     })
-    Util.Corner(Spacing[3], sidebar)
-    Util.Gradient(sidebar, theme.PrimaryLight, theme.Secondary, 160)
-    Util.Stroke(sidebar, theme.Border, 1, 0.6)
+    Util.Corner(Spacing[4], sidebar)  -- Apple-style rounded
+    Util.Stroke(sidebar, theme.Border, 1, 0.35)
     self.Sidebar = sidebar
-    self._theme:Register(sidebar, function(s, t) s.BackgroundColor3 = t.Secondary end)
+    self._theme:Register(sidebar, function(s, t)
+        s.BackgroundColor3 = t.Secondary
+        s.BackgroundTransparency = t.PanelT
+    end)
 
     local tabList = Util.Create("Frame", {
-        BackgroundTransparency = 1, Size = UDim2.new(1, -Spacing[6], 1, -Spacing[6]),
-        Position = UDim2.new(0, Spacing[3], 0, Spacing[3] + 2), Parent = sidebar,
+        BackgroundTransparency = 1, Size = UDim2.new(1, -Spacing[4], 1, -Spacing[6]),
+        Position = UDim2.new(0, Spacing[2], 0, Spacing[3] + 2), Parent = sidebar,
     })
-    LayoutManager.VerticalList(tabList, Spacing[3] - 2, Enum.HorizontalAlignment.Center)
+    LayoutManager.VerticalList(tabList, Spacing[2], Enum.HorizontalAlignment.Center)
     self.TabList = tabList
 
-    -- Content panel.
+    -- Content panel — frosted glass panel.
     local contentPanel = Util.Create("Frame", {
-        Name = "ContentPanel", Position = UDim2.new(0, 306, 0, 0),
-        Size = UDim2.new(1, -324, 1, 0), BackgroundColor3 = theme.Secondary,
-        BackgroundTransparency = 0.25, BorderSizePixel = 0, Parent = body,
+        Name = "ContentPanel", Position = UDim2.new(0, 274, 0, 0),
+        Size = UDim2.new(1, -292, 1, 0), BackgroundColor3 = theme.Secondary,
+        BackgroundTransparency = theme.PanelT, BorderSizePixel = 0, Parent = body,
     })
-    Util.Corner(Spacing[3], contentPanel)
-    Util.Gradient(contentPanel, theme.PrimaryLight, theme.Secondary, 200)
-    Util.Stroke(contentPanel, theme.Border, 1, 0.6)
+    Util.Corner(Spacing[4], contentPanel)
+    Util.Stroke(contentPanel, theme.Border, 1, 0.35)
     self._contentPanel = contentPanel
-    self._theme:Register(contentPanel, function(c, t) c.BackgroundColor3 = t.Secondary end)
+    self._theme:Register(contentPanel, function(c, t)
+        c.BackgroundColor3 = t.Secondary
+        c.BackgroundTransparency = t.PanelT
+    end)
 
     local contentContainer = Util.Create("Frame", {
         Name = "ContentContainer", BackgroundTransparency = 1,
-        Size = UDim2.new(1, -Spacing[8] + 4, 1, -Spacing[6] + 4),
-        Position = UDim2.new(0, Spacing[4] + 2, 0, Spacing[4]), Parent = contentPanel,
+        Size = UDim2.new(1, -Spacing[8], 1, -Spacing[6] + 4),
+        Position = UDim2.new(0, Spacing[4], 0, Spacing[4]), Parent = contentPanel,
     })
     self.ContentContainer = contentContainer
 
@@ -2061,32 +1963,51 @@ function Library.new()
     local self = setmetatable({}, Library)
     self._theme = ThemeManager.new(DEFAULT_THEME)
     self._windows = {}
+    Logger.Init("Nature UI initialized — theme:", self._theme:GetCurrentName())
     return self
 end
 
 function Library:CreateWindow(opts)
     local window = Window.new(self, opts)
     table.insert(self._windows, window)
+    Logger.Init("Window created:", (opts and opts.Title) or "Nature")
     return window
 end
 
-function Library:SetTheme(colors)
-    self._theme:Set(colors)
+-- Curated themes only. name is "Nature" or "Apple".
+function Library:SetTheme(name)
+    return self._theme:SetTheme(name)
 end
 
+-- Cycle to the next curated theme.
+function Library:NextTheme()
+    return self._theme:NextTheme()
+end
+
+-- Returns the active theme table (read-only use).
 function Library:GetTheme()
     return self._theme:Get()
 end
 
--- Accent color helpers (RGB / HSV / HEX). -----------------------------------
-function Library:SetAccentColor(color3)
-    self._theme:Set({ Accent = color3 })
+-- Returns the current theme's name ("Nature" / "Apple").
+function Library:GetThemeName()
+    return self._theme:GetCurrentName()
 end
-function Library:SetAccentColorHSV(h, s, v)
-    self._theme:Set({ Accent = Color3.fromHSV(h, s, v) })
+
+-- List available curated theme names.
+function Library:GetThemes()
+    return table.clone(THEME_ORDER)
 end
-function Library:SetAccentColorHex(hex)
-    self._theme:Set({ Accent = ColorUtil.FromHex(hex) })
+
+-- Enable / disable structured debug logging at runtime.
+function Library:SetDebug(enabled)
+    CONFIG.Debug = enabled and true or false
+    Logger.Init("Debug logging", CONFIG.Debug and "ENABLED" or "disabled")
+end
+
+-- Subscribe to theme changes: fn(themeTable).
+function Library:OnThemeChanged(fn)
+    return self._theme.Changed:Connect(fn)
 end
 
 function Library:SetAnimationDuration(duration)
@@ -2096,13 +2017,14 @@ end
 function Library:Destroy()
     for _, window in ipairs(self._windows) do window:Destroy() end
     table.clear(self._windows)
+    Logger.Init("Library destroyed")
 end
 
 -- Expose submodules & helpers for advanced users.
 Library.Signal = Signal
 Library.Cleaner = Cleaner
-Library.Color = ColorUtil
 Library.Spacing = Spacing
+Library.Logger = Logger
 
 --==========================================================================--
 --                          MODULE RETURN                                   --
