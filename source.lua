@@ -99,42 +99,43 @@ function Logger.UI(...)      Logger.Log("UI", ...)      end
 local THEMES = {}
 
 -- NATURE — light green, soft white translucent glass, organic & calm. (default)
+-- Tuned to match the reference: vivid green backdrop fading inward, very pale
+-- near-white panels with a faint green tint, rich medium-green accent.
 THEMES.Nature = {
     Name           = "Nature",
-    -- Backdrop gradient (behind the glass) — deeper mint → soft white, more
-    -- color range so the frosted panels have something to pick up.
-    BackdropTop    = Color3.fromRGB(190, 236, 208),
-    BackdropBottom = Color3.fromRGB(232, 248, 238),
-    BackdropT      = 0.02,
-    -- Glass surfaces — near-white with a faint top sheen → cooler bottom.
+    -- Backdrop gradient (behind the glass) — vivid green edge → pale center.
+    BackdropTop    = Color3.fromRGB(120, 210, 140),
+    BackdropBottom = Color3.fromRGB(214, 242, 224),
+    BackdropT      = 0.0,
+    -- Glass surfaces — very pale, almost white with the faintest green tint.
     Primary        = Color3.fromRGB(255, 255, 255),
     PrimaryLight   = Color3.fromRGB(255, 255, 255),
-    Secondary      = Color3.fromRGB(252, 255, 253),
-    SecondaryLight = Color3.fromRGB(244, 252, 247),
-    -- Panel gradient endpoints (top brighter, bottom faintly tinted).
-    PanelTop       = Color3.fromRGB(255, 255, 255),
-    PanelBottom    = Color3.fromRGB(228, 244, 234),
-    PanelT         = 0.30,  -- panels are glassy
-    PanelTopT      = 0.12,  -- gradient fade: more opaque up top...
-    PanelBottomT   = 0.46,  -- ...more translucent at the bottom
-    ControlT       = 0.40,  -- chips slightly more see-through
-    ControlTopT    = 0.22,
-    ControlBottomT = 0.52,
-    -- Accent — light, fresh spring green (with a gradient pair for fills).
-    Accent         = Color3.fromRGB(112, 214, 127),
-    AccentTop      = Color3.fromRGB(132, 226, 146),
-    AccentBottom   = Color3.fromRGB(96, 200, 116),
-    AccentDim      = Color3.fromRGB(150, 226, 162),
+    Secondary      = Color3.fromRGB(250, 254, 251),
+    SecondaryLight = Color3.fromRGB(244, 251, 247),
+    -- Panel gradient endpoints — subtle: bright white top → faint mint bottom.
+    PanelTop       = Color3.fromRGB(252, 255, 253),
+    PanelBottom    = Color3.fromRGB(236, 248, 240),
+    PanelT         = 0.18,   -- panels fairly solid so they don't look muddy
+    PanelTopT      = 0.06,   -- gentle fade so the gradient is soft, not heavy
+    PanelBottomT   = 0.26,
+    ControlT       = 0.28,   -- chips a touch more see-through than panels
+    ControlTopT    = 0.12,
+    ControlBottomT = 0.34,
+    -- Accent — rich, fresh medium green (matches the reference pill/toggle).
+    Accent         = Color3.fromRGB(64, 192, 87),
+    AccentTop      = Color3.fromRGB(78, 202, 100),
+    AccentBottom   = Color3.fromRGB(54, 180, 78),
+    AccentDim      = Color3.fromRGB(120, 214, 138),
     AccentText     = Color3.fromRGB(255, 255, 255),  -- text on accent fills
     -- Text — dark green-grey for contrast on light glass.
-    Text           = Color3.fromRGB(30, 54, 40),
-    TextDim        = Color3.fromRGB(78, 108, 90),
-    TextMuted      = Color3.fromRGB(140, 166, 150),
-    -- Borders — thin, soft mint, plus a brighter inner highlight for the rim.
-    Border         = Color3.fromRGB(206, 230, 214),
+    Text           = Color3.fromRGB(28, 50, 38),
+    TextDim        = Color3.fromRGB(82, 112, 94),
+    TextMuted      = Color3.fromRGB(146, 172, 156),
+    -- Borders — very soft mint (kept subtle; main frame has no stroke).
+    Border         = Color3.fromRGB(214, 236, 222),
     BorderGlow     = Color3.fromRGB(255, 255, 255),
     -- Controls.
-    ToggleOff      = Color3.fromRGB(214, 226, 218),
+    ToggleOff      = Color3.fromRGB(210, 222, 214),
     ToggleThumb    = Color3.fromRGB(255, 255, 255),
 }
 
@@ -297,8 +298,8 @@ end
 function Util.GlassStroke(parent, borderColor, glowColor, thickness)
     local stroke = Util.Create("UIStroke", {
         Color = Color3.fromRGB(255, 255, 255),
-        Thickness = thickness or 1.2,
-        Transparency = 0.1,
+        Thickness = thickness or 1,
+        Transparency = 0.4,  -- softer base so the edge isn't a hard outline
         ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
         Parent = parent,
     })
@@ -308,9 +309,12 @@ function Util.GlassStroke(parent, borderColor, glowColor, thickness)
             ColorSequenceKeypoint.new(0.5, borderColor or DEFAULT_THEME.Border),
             ColorSequenceKeypoint.new(1, borderColor or DEFAULT_THEME.Border),
         }),
+        -- Bright soft highlight at the very top, fading to nearly invisible —
+        -- a gentle lit rim, never a hard rectangular outline.
         Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0.15),
-            NumberSequenceKeypoint.new(1, 0.5),
+            NumberSequenceKeypoint.new(0, 0.35),
+            NumberSequenceKeypoint.new(0.4, 0.7),
+            NumberSequenceKeypoint.new(1, 0.92),
         }),
         Rotation = 90,
         Parent = stroke,
@@ -609,7 +613,11 @@ end
 
 function ThemeManager:Register(inst, applier)
     table.insert(self._registry, { inst = inst, fn = applier })
-    applier(inst, self.Theme)
+    -- Apply immediately, but never let a single bad applier abort registration.
+    local ok, err = pcall(applier, inst, self.Theme)
+    if not ok then
+        Logger.Theme("applier error on register:", tostring(err))
+    end
 end
 
 function ThemeManager:Get()
@@ -620,13 +628,25 @@ function ThemeManager:GetCurrentName()
     return self.Current
 end
 
--- Re-apply the current theme table to every registered element.
+-- Re-apply the current theme table to every registered element. Each applier is
+-- pcall-guarded so one failing element can NEVER halt the rest of the re-skin
+-- (this was the cause of "theme switching doesn't work" — a partial update).
 function ThemeManager:_reapply()
     for i = #self._registry, 1, -1 do
         local entry = self._registry[i]
-        local alive = (typeof(entry.inst) ~= "Instance") or (entry.inst.Parent ~= nil)
+        local inst = entry.inst
+        local alive
+        if typeof(inst) == "Instance" then
+            -- An element is alive if it still has an ancestor (parented anywhere).
+            alive = inst.Parent ~= nil
+        else
+            alive = true  -- non-Instance registrants (rare) are always kept
+        end
         if alive then
-            entry.fn(entry.inst, self.Theme)
+            local ok, err = pcall(entry.fn, inst, self.Theme)
+            if not ok then
+                Logger.Theme("applier error during re-skin:", tostring(err))
+            end
         else
             table.remove(self._registry, i)
         end
@@ -836,16 +856,7 @@ function Toggle.new(section, text, onFn, offFn, default)
         Parent = row,
     })
     Util.Corner(13, track)
-    -- Subtle top sheen so the pill reads as glass (transparency-only, no hue shift).
-    Util.Create("UIGradient", {
-        Color = ColorSequence.new(Color3.fromRGB(255,255,255), Color3.fromRGB(255,255,255)),
-        Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0.7),
-            NumberSequenceKeypoint.new(0.5, 1),
-            NumberSequenceKeypoint.new(1, 0.88),
-        }),
-        Rotation = 90, Parent = track,
-    })
+    -- Clean flat pill — no gradient on the toggle track (gradient looked bad).
     -- Register so a theme swap recolors an OFF toggle correctly.
     self._theme:Register(track, function(tr, t)
         tr.BackgroundColor3 = self._value and t.Accent or t.ToggleOff
@@ -1816,8 +1827,9 @@ function Window.new(library, opts)
         ZIndex = Z.Window + 1, Parent = gui,
     })
     Util.Corner(Spacing[4] + 2, main)  -- larger Apple-style radius
-    local mainGrad = Util.GlassGradient(main, theme.PanelTop, theme.PanelBottom, 0.0, 0.18, 90)
-    local mainStroke = Util.GlassStroke(main, theme.Border, theme.BorderGlow, 1.4)
+    -- No border stroke on the main frame — the soft backdrop behind it and the
+    -- gradient fill define the edge. A stroke here reads as a hard blocky outline.
+    local mainGrad = Util.GlassGradient(main, theme.PanelTop, theme.PanelBottom, 0.0, 0.14, 90)
     self.Main = main
     self._theme:Register(main, function(m, t)
         m.BackgroundColor3 = t.PanelTop
@@ -1825,16 +1837,6 @@ function Window.new(library, opts)
     end)
     self._theme:Register(mainGrad, function(g, t)
         g.Color = ColorSequence.new(t.PanelTop, t.PanelBottom)
-    end)
-    self._theme:Register(mainStroke, function(st, t)
-        local grad = st:FindFirstChildOfClass("UIGradient")
-        if grad then
-            grad.Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, t.BorderGlow),
-                ColorSequenceKeypoint.new(0.5, t.Border),
-                ColorSequenceKeypoint.new(1, t.Border),
-            })
-        end
     end)
     -- Keep backdrop locked behind the window as it drags/resizes.
     self._cleaner:Add(main:GetPropertyChangedSignal("Position"):Connect(function()
