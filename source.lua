@@ -101,27 +101,38 @@ local THEMES = {}
 -- NATURE — light green, soft white translucent glass, organic & calm. (default)
 THEMES.Nature = {
     Name           = "Nature",
-    -- Backdrop gradient (behind the glass) — pale mint → soft white.
-    BackdropTop    = Color3.fromRGB(222, 246, 230),
-    BackdropBottom = Color3.fromRGB(238, 250, 242),
+    -- Backdrop gradient (behind the glass) — deeper mint → soft white, more
+    -- color range so the frosted panels have something to pick up.
+    BackdropTop    = Color3.fromRGB(190, 236, 208),
+    BackdropBottom = Color3.fromRGB(232, 248, 238),
     BackdropT      = 0.02,
-    -- Glass surfaces — near-white, high transparency for frosted feel.
+    -- Glass surfaces — near-white with a faint top sheen → cooler bottom.
     Primary        = Color3.fromRGB(255, 255, 255),
     PrimaryLight   = Color3.fromRGB(255, 255, 255),
     Secondary      = Color3.fromRGB(252, 255, 253),
     SecondaryLight = Color3.fromRGB(244, 252, 247),
-    PanelT         = 0.35,  -- panels are glassy
-    ControlT       = 0.45,  -- chips slightly more see-through
-    -- Accent — light, fresh spring green.
+    -- Panel gradient endpoints (top brighter, bottom faintly tinted).
+    PanelTop       = Color3.fromRGB(255, 255, 255),
+    PanelBottom    = Color3.fromRGB(228, 244, 234),
+    PanelT         = 0.30,  -- panels are glassy
+    PanelTopT      = 0.12,  -- gradient fade: more opaque up top...
+    PanelBottomT   = 0.46,  -- ...more translucent at the bottom
+    ControlT       = 0.40,  -- chips slightly more see-through
+    ControlTopT    = 0.22,
+    ControlBottomT = 0.52,
+    -- Accent — light, fresh spring green (with a gradient pair for fills).
     Accent         = Color3.fromRGB(112, 214, 127),
+    AccentTop      = Color3.fromRGB(132, 226, 146),
+    AccentBottom   = Color3.fromRGB(96, 200, 116),
     AccentDim      = Color3.fromRGB(150, 226, 162),
     AccentText     = Color3.fromRGB(255, 255, 255),  -- text on accent fills
     -- Text — dark green-grey for contrast on light glass.
     Text           = Color3.fromRGB(30, 54, 40),
     TextDim        = Color3.fromRGB(78, 108, 90),
     TextMuted      = Color3.fromRGB(140, 166, 150),
-    -- Borders — thin, soft mint.
+    -- Borders — thin, soft mint, plus a brighter inner highlight for the rim.
     Border         = Color3.fromRGB(206, 230, 214),
+    BorderGlow     = Color3.fromRGB(255, 255, 255),
     -- Controls.
     ToggleOff      = Color3.fromRGB(214, 226, 218),
     ToggleThumb    = Color3.fromRGB(255, 255, 255),
@@ -130,22 +141,31 @@ THEMES.Nature = {
 -- APPLE — pure neutral white glass on light grey, iOS system blue accent.
 THEMES.Apple = {
     Name           = "Apple",
-    BackdropTop    = Color3.fromRGB(236, 238, 242),
-    BackdropBottom = Color3.fromRGB(246, 247, 250),
+    BackdropTop    = Color3.fromRGB(228, 230, 236),
+    BackdropBottom = Color3.fromRGB(244, 245, 248),
     BackdropT      = 0.02,
     Primary        = Color3.fromRGB(255, 255, 255),
     PrimaryLight   = Color3.fromRGB(255, 255, 255),
     Secondary      = Color3.fromRGB(255, 255, 255),
     SecondaryLight = Color3.fromRGB(248, 249, 251),
-    PanelT         = 0.30,
-    ControlT       = 0.40,
+    PanelTop       = Color3.fromRGB(255, 255, 255),
+    PanelBottom    = Color3.fromRGB(238, 240, 244),
+    PanelT         = 0.26,
+    PanelTopT      = 0.10,
+    PanelBottomT   = 0.40,
+    ControlT       = 0.36,
+    ControlTopT    = 0.20,
+    ControlBottomT = 0.48,
     Accent         = Color3.fromRGB(10, 132, 255),   -- iOS system blue
+    AccentTop      = Color3.fromRGB(40, 150, 255),
+    AccentBottom   = Color3.fromRGB(0, 118, 246),
     AccentDim      = Color3.fromRGB(94, 174, 255),
     AccentText     = Color3.fromRGB(255, 255, 255),
     Text           = Color3.fromRGB(28, 28, 30),
     TextDim        = Color3.fromRGB(99, 99, 102),
     TextMuted      = Color3.fromRGB(150, 150, 154),
     Border         = Color3.fromRGB(224, 226, 230),
+    BorderGlow     = Color3.fromRGB(255, 255, 255),
     ToggleOff      = Color3.fromRGB(225, 226, 230),
     ToggleThumb    = Color3.fromRGB(255, 255, 255),
 }
@@ -251,6 +271,107 @@ function Util.Gradient(parent, colorTop, colorBottom, rotation)
         Rotation = rotation or 90,
         Parent = parent,
     })
+end
+
+-- Glass gradient: a vertical color sheen PLUS a transparency ramp (more opaque
+-- at the top, more translucent toward the bottom). This is what gives frosted
+-- panels their dimensional, non-flat look. Returns the UIGradient.
+function Util.GlassGradient(parent, colorTop, colorBottom, transpTop, transpBottom, rotation)
+    return Util.Create("UIGradient", {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, colorTop),
+            ColorSequenceKeypoint.new(1, colorBottom),
+        }),
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, transpTop or 0),
+            NumberSequenceKeypoint.new(1, transpBottom or 0),
+        }),
+        Rotation = rotation or 90,
+        Parent = parent,
+    })
+end
+
+-- Soft rim: a thin stroke whose own gradient fades from a bright highlight at
+-- the top to the border color at the bottom, so edges read as a lit glass rim
+-- rather than a hard flat outline. Returns the UIStroke (gradient is its child).
+function Util.GlassStroke(parent, borderColor, glowColor, thickness)
+    local stroke = Util.Create("UIStroke", {
+        Color = Color3.fromRGB(255, 255, 255),
+        Thickness = thickness or 1.2,
+        Transparency = 0.1,
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+        Parent = parent,
+    })
+    Util.Create("UIGradient", {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, glowColor or Color3.fromRGB(255, 255, 255)),
+            ColorSequenceKeypoint.new(0.5, borderColor or DEFAULT_THEME.Border),
+            ColorSequenceKeypoint.new(1, borderColor or DEFAULT_THEME.Border),
+        }),
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.15),
+            NumberSequenceKeypoint.new(1, 0.5),
+        }),
+        Rotation = 90,
+        Parent = stroke,
+    })
+    return stroke
+end
+
+-- Apply the standard glass treatment to a control chip (button, trigger, box):
+-- a vertical sheen gradient + a soft lit rim. Registers both with the theme
+-- manager so theme swaps recolor them. `themeMgr` is the ThemeManager instance.
+function Util.ChipGlass(frame, themeMgr)
+    local t = themeMgr:Get()
+    local grad = Util.GlassGradient(frame, t.PanelTop, t.PanelBottom,
+        t.ControlTopT or 0.15, t.ControlBottomT or 0.5, 90)
+    local stroke = Util.GlassStroke(frame, t.Border, t.BorderGlow, 1)
+    themeMgr:Register(grad, function(g, th)
+        g.Color = ColorSequence.new(th.PanelTop, th.PanelBottom)
+        g.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, th.ControlTopT or 0.15),
+            NumberSequenceKeypoint.new(1, th.ControlBottomT or 0.5),
+        })
+    end)
+    themeMgr:Register(stroke, function(st, th)
+        local g = st:FindFirstChildOfClass("UIGradient")
+        if g then
+            g.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, th.BorderGlow),
+                ColorSequenceKeypoint.new(0.5, th.Border),
+                ColorSequenceKeypoint.new(1, th.Border),
+            })
+        end
+    end)
+    return grad, stroke
+end
+
+-- Lighter variant for chips that change BACKGROUND COLOR on hover (buttons).
+-- Uses a transparency-only sheen (white→white, fade only) so it doesn't tint
+-- the accent fill on hover, plus the soft lit rim. Returns grad, stroke.
+function Util.ChipSheen(frame, themeMgr)
+    local t = themeMgr:Get()
+    local grad = Util.Create("UIGradient", {
+        Color = ColorSequence.new(Color3.fromRGB(255,255,255), Color3.fromRGB(255,255,255)),
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.55),    -- faint highlight near top
+            NumberSequenceKeypoint.new(0.5, 1),     -- invisible through middle
+            NumberSequenceKeypoint.new(1, 0.85),
+        }),
+        Rotation = 90, Parent = frame,
+    })
+    local stroke = Util.GlassStroke(frame, t.Border, t.BorderGlow, 1)
+    themeMgr:Register(stroke, function(st, th)
+        local g = st:FindFirstChildOfClass("UIGradient")
+        if g then
+            g.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, th.BorderGlow),
+                ColorSequenceKeypoint.new(0.5, th.Border),
+                ColorSequenceKeypoint.new(1, th.Border),
+            })
+        end
+    end)
+    return grad, stroke
 end
 
 function Util.Tween(inst, props, duration, style, direction)
@@ -715,6 +836,16 @@ function Toggle.new(section, text, onFn, offFn, default)
         Parent = row,
     })
     Util.Corner(13, track)
+    -- Subtle top sheen so the pill reads as glass (transparency-only, no hue shift).
+    Util.Create("UIGradient", {
+        Color = ColorSequence.new(Color3.fromRGB(255,255,255), Color3.fromRGB(255,255,255)),
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.7),
+            NumberSequenceKeypoint.new(0.5, 1),
+            NumberSequenceKeypoint.new(1, 0.88),
+        }),
+        Rotation = 90, Parent = track,
+    })
     -- Register so a theme swap recolors an OFF toggle correctly.
     self._theme:Register(track, function(tr, t)
         tr.BackgroundColor3 = self._value and t.Accent or t.ToggleOff
@@ -799,7 +930,7 @@ function Button.new(section, text, callback)
         TextColor3 = theme.Text, Parent = row,
     })
     Util.Corner(Spacing[3], btn)  -- rounder, Apple-like
-    Util.Stroke(btn, theme.Border, 1, 0.4)
+    Util.ChipSheen(btn, self._theme)
     self._theme:Register(btn, function(b, t)
         b.TextColor3 = t.Text
         b.BackgroundColor3 = t.SecondaryLight
@@ -891,7 +1022,7 @@ function Dropdown.new(section, text, options, callback, default)
         Text = "", ZIndex = Z.Trigger, Parent = row,
     })
     Util.Corner(Spacing[3], trigger)
-    Util.Stroke(trigger, theme.Border, 1, 0.4)
+    Util.ChipGlass(trigger, self._theme)
     self._theme:Register(trigger, function(b, t)
         b.BackgroundColor3 = t.SecondaryLight
         b.BackgroundTransparency = t.ControlT
@@ -1175,7 +1306,14 @@ function Textbox.new(section, text, placeholder, callback)
         BorderSizePixel = 0, Parent = row,
     })
     Util.Corner(Spacing[3], boxFrame)
-    local stroke = Util.Stroke(boxFrame, theme.Border, 1, 0.4)
+    Util.ChipGlass(boxFrame, self._theme)
+    -- Dedicated accent focus ring: invisible at rest, fades in on focus. Kept
+    -- separate from the glass rim so the two don't fight.
+    local focusRing = Util.Create("UIStroke", {
+        Color = theme.Accent, Thickness = 1.6, Transparency = 1,
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = boxFrame,
+    })
+    self._theme:Register(focusRing, function(fr, t) fr.Color = t.Accent end)
     self._theme:Register(boxFrame, function(b, t)
         b.BackgroundColor3 = t.SecondaryLight
         b.BackgroundTransparency = t.ControlT
@@ -1192,10 +1330,10 @@ function Textbox.new(section, text, placeholder, callback)
     self._theme:Register(input, function(b, t) b.TextColor3 = t.Text; b.PlaceholderColor3 = t.TextMuted end)
 
     self._cleaner:Add(input.Focused:Connect(function()
-        Util.Tween(stroke, { Transparency = 0, Color = self._theme:Get().Accent }, 0.15)
+        Util.Tween(focusRing, { Transparency = 0 }, 0.15)
     end))
     self._cleaner:Add(input.FocusLost:Connect(function()
-        Util.Tween(stroke, { Transparency = 0.6, Color = self._theme:Get().Border }, 0.15)
+        Util.Tween(focusRing, { Transparency = 1 }, 0.15)
         self._value = input.Text
         if self._callback then task.spawn(self._callback, input.Text) end
         self.Changed:Fire(input.Text)
@@ -1325,7 +1463,7 @@ function Keybind.new(section, text, defaultKey, callback)
         Text = self._value.Name, TextSize = 15, TextColor3 = theme.Text, Parent = row,
     })
     Util.Corner(Spacing[3], keyBtn)
-    Util.Stroke(keyBtn, theme.Border, 1, 0.4)
+    Util.ChipSheen(keyBtn, self._theme)
     self._keyBtn = keyBtn
     self._theme:Register(keyBtn, function(b, t)
         b.BackgroundColor3 = t.SecondaryLight; b.TextColor3 = t.Text
@@ -1504,10 +1642,14 @@ function Tab.new(window, name, iconName)
     })
     Util.Corner(Spacing[3], button)
     self._button = button
-    -- Active fill is the button's own background tinted accent; we tween its
-    -- transparency. Register so theme swaps recolor it.
-    self._theme:Register(button, function(b, t)
-        b.BackgroundColor3 = t.Accent
+    -- Accent gradient for the active pill (top brighter → bottom deeper). The
+    -- gradient sits at full color; the button's BackgroundTransparency controls
+    -- whether the pill is visible (1 = inactive, 0 = active).
+    local tabGrad = Util.Gradient(button, theme.AccentTop, theme.AccentBottom, 90)
+    self._tabGrad = tabGrad
+    self._theme:Register(button, function(b, t) b.BackgroundColor3 = t.Accent end)
+    self._theme:Register(tabGrad, function(g, t)
+        g.Color = ColorSequence.new(t.AccentTop, t.AccentBottom)
     end)
 
     local iconHolder = Util.Create("Frame", {
@@ -1642,31 +1784,57 @@ function Window.new(library, opts)
         BorderSizePixel = 0, ZIndex = Z.Window, Parent = gui,
     })
     Util.Corner(Spacing[4] + 4, backdrop)
-    local backdropGrad = Util.Gradient(backdrop, theme.BackdropTop, theme.BackdropBottom, 145)
+    -- Diagonal multi-stop backdrop so the frosted panels pick up a soft glow.
+    local backdropGrad = Util.Create("UIGradient", {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, theme.BackdropTop),
+            ColorSequenceKeypoint.new(0.55, theme.BackdropBottom),
+            ColorSequenceKeypoint.new(1, theme.BackdropTop),
+        }),
+        Rotation = 135, Parent = backdrop,
+    })
     self.Backdrop = backdrop
     self._theme:Register(backdrop, function(b, t)
         b.BackgroundColor3 = t.BackdropTop
         b.BackgroundTransparency = t.BackdropT
     end)
     self._theme:Register(backdropGrad, function(g, t)
-        g.Color = ColorSequence.new(t.BackdropTop, t.BackdropBottom)
+        g.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, t.BackdropTop),
+            ColorSequenceKeypoint.new(0.55, t.BackdropBottom),
+            ColorSequenceKeypoint.new(1, t.BackdropTop),
+        })
     end)
 
-    -- Main window — translucent white glass panel.
+    -- Main window — translucent white glass panel with a faint sheen + lit rim.
     local main = Util.Create("Frame", {
         Name = "MainWindow", AnchorPoint = Vector2.new(0.5, 0.5),
         Position = UDim2.new(0.5, 0, 0.5, 0), Size = UDim2.new(0, 720, 0, 470),
-        BackgroundColor3 = theme.Primary, BackgroundTransparency = theme.PanelT * 0.4,
+        BackgroundColor3 = theme.PanelTop, BackgroundTransparency = theme.PanelT * 0.35,
         BorderSizePixel = 0,
         ClipsDescendants = true,  -- prevents minimize content leak
         ZIndex = Z.Window + 1, Parent = gui,
     })
     Util.Corner(Spacing[4] + 2, main)  -- larger Apple-style radius
-    Util.Stroke(main, theme.Border, 1, 0.2)
+    local mainGrad = Util.GlassGradient(main, theme.PanelTop, theme.PanelBottom, 0.0, 0.18, 90)
+    local mainStroke = Util.GlassStroke(main, theme.Border, theme.BorderGlow, 1.4)
     self.Main = main
     self._theme:Register(main, function(m, t)
-        m.BackgroundColor3 = t.Primary
-        m.BackgroundTransparency = t.PanelT * 0.4
+        m.BackgroundColor3 = t.PanelTop
+        m.BackgroundTransparency = t.PanelT * 0.35
+    end)
+    self._theme:Register(mainGrad, function(g, t)
+        g.Color = ColorSequence.new(t.PanelTop, t.PanelBottom)
+    end)
+    self._theme:Register(mainStroke, function(st, t)
+        local grad = st:FindFirstChildOfClass("UIGradient")
+        if grad then
+            grad.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, t.BorderGlow),
+                ColorSequenceKeypoint.new(0.5, t.Border),
+                ColorSequenceKeypoint.new(1, t.Border),
+            })
+        end
     end)
     -- Keep backdrop locked behind the window as it drags/resizes.
     self._cleaner:Add(main:GetPropertyChangedSignal("Position"):Connect(function()
@@ -1759,18 +1927,37 @@ function Window.new(library, opts)
     })
     self.Body = body
 
-    -- Sidebar — frosted glass panel.
+    -- Sidebar — frosted glass panel with a vertical sheen + soft lit rim.
     local sidebar = Util.Create("Frame", {
         Name = "Sidebar", Position = UDim2.new(0, Spacing[4] + 2, 0, 0),
-        Size = UDim2.new(0, 240, 1, 0), BackgroundColor3 = theme.Secondary,
+        Size = UDim2.new(0, 240, 1, 0), BackgroundColor3 = theme.PanelTop,
         BackgroundTransparency = theme.PanelT, BorderSizePixel = 0, Parent = body,
     })
     Util.Corner(Spacing[4], sidebar)  -- Apple-style rounded
-    Util.Stroke(sidebar, theme.Border, 1, 0.35)
+    local sidebarGrad = Util.GlassGradient(sidebar, theme.PanelTop, theme.PanelBottom,
+        theme.PanelTopT, theme.PanelBottomT, 90)
+    local sidebarStroke = Util.GlassStroke(sidebar, theme.Border, theme.BorderGlow, 1.2)
     self.Sidebar = sidebar
     self._theme:Register(sidebar, function(s, t)
-        s.BackgroundColor3 = t.Secondary
+        s.BackgroundColor3 = t.PanelTop
         s.BackgroundTransparency = t.PanelT
+    end)
+    self._theme:Register(sidebarGrad, function(g, t)
+        g.Color = ColorSequence.new(t.PanelTop, t.PanelBottom)
+        g.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, t.PanelTopT),
+            NumberSequenceKeypoint.new(1, t.PanelBottomT),
+        })
+    end)
+    self._theme:Register(sidebarStroke, function(st, t)
+        local grad = st:FindFirstChildOfClass("UIGradient")
+        if grad then
+            grad.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, t.BorderGlow),
+                ColorSequenceKeypoint.new(0.5, t.Border),
+                ColorSequenceKeypoint.new(1, t.Border),
+            })
+        end
     end)
 
     local tabList = Util.Create("Frame", {
@@ -1780,18 +1967,37 @@ function Window.new(library, opts)
     LayoutManager.VerticalList(tabList, Spacing[2], Enum.HorizontalAlignment.Center)
     self.TabList = tabList
 
-    -- Content panel — frosted glass panel.
+    -- Content panel — frosted glass panel with sheen + soft lit rim.
     local contentPanel = Util.Create("Frame", {
         Name = "ContentPanel", Position = UDim2.new(0, 274, 0, 0),
-        Size = UDim2.new(1, -292, 1, 0), BackgroundColor3 = theme.Secondary,
+        Size = UDim2.new(1, -292, 1, 0), BackgroundColor3 = theme.PanelTop,
         BackgroundTransparency = theme.PanelT, BorderSizePixel = 0, Parent = body,
     })
     Util.Corner(Spacing[4], contentPanel)
-    Util.Stroke(contentPanel, theme.Border, 1, 0.35)
+    local contentGrad = Util.GlassGradient(contentPanel, theme.PanelTop, theme.PanelBottom,
+        theme.PanelTopT, theme.PanelBottomT, 90)
+    local contentStroke = Util.GlassStroke(contentPanel, theme.Border, theme.BorderGlow, 1.2)
     self._contentPanel = contentPanel
     self._theme:Register(contentPanel, function(c, t)
-        c.BackgroundColor3 = t.Secondary
+        c.BackgroundColor3 = t.PanelTop
         c.BackgroundTransparency = t.PanelT
+    end)
+    self._theme:Register(contentGrad, function(g, t)
+        g.Color = ColorSequence.new(t.PanelTop, t.PanelBottom)
+        g.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, t.PanelTopT),
+            NumberSequenceKeypoint.new(1, t.PanelBottomT),
+        })
+    end)
+    self._theme:Register(contentStroke, function(st, t)
+        local grad = st:FindFirstChildOfClass("UIGradient")
+        if grad then
+            grad.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, t.BorderGlow),
+                ColorSequenceKeypoint.new(0.5, t.Border),
+                ColorSequenceKeypoint.new(1, t.Border),
+            })
+        end
     end)
 
     local contentContainer = Util.Create("Frame", {
