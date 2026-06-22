@@ -12,22 +12,32 @@ Font              = Enum.Font.GothamMedium,
 FontBold          = Enum.Font.GothamBold,
 FontRegular       = Enum.Font.Gotham,
 }
+
 local DEFAULT_THEME = {
-Primary        = Color3.fromRGB(31, 122, 64),
-PrimaryLight   = Color3.fromRGB(58, 156, 89),
-Secondary      = Color3.fromRGB(40, 110, 70),
-SecondaryLight = Color3.fromRGB(74, 168, 105),
-Accent         = Color3.fromRGB(126, 224, 142),
-AccentDim      = Color3.fromRGB(96, 184, 116),
-Text           = Color3.fromRGB(245, 250, 245),
-TextDim        = Color3.fromRGB(205, 225, 210),
-TextMuted      = Color3.fromRGB(170, 200, 178),
-Background      = Color3.fromRGB(24, 92, 50),
-Border         = Color3.fromRGB(90, 180, 120),
-ToggleOff      = Color3.fromRGB(54, 120, 78),
-ToggleThumb    = Color3.fromRGB(245, 250, 245),
-Shadow         = Color3.fromRGB(0, 0, 0),
+    Primary        = Color3.fromRGB(28, 37, 31),
+    PrimaryLight   = Color3.fromRGB(34, 46, 38),
+
+    Secondary      = Color3.fromRGB(40, 54, 44),
+    SecondaryLight = Color3.fromRGB(48, 64, 53),
+
+    Accent         = Color3.fromRGB(77, 214, 122),
+    AccentDim      = Color3.fromRGB(63, 175, 101),
+
+    Text           = Color3.fromRGB(255,255,255),
+    TextDim        = Color3.fromRGB(185,195,188),
+    TextMuted      = Color3.fromRGB(130,140,134),
+
+    Background     = Color3.fromRGB(20,28,23),
+
+    Border         = Color3.fromRGB(65,85,72),
+
+    ToggleOff      = Color3.fromRGB(55,65,59),
+
+    ToggleThumb    = Color3.fromRGB(255,255,255),
+
+    Shadow         = Color3.fromRGB(0,0,0),
 }
+
 local Util = {}
 function Util.Create(className, props, children)
 local inst = Instance.new(className)
