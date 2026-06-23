@@ -2,6 +2,7 @@
 local TweenService     = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService       = game:GetService("RunService")
+local HttpService      = game:GetService("HttpService")
 local Players          = game:GetService("Players")
 local CoreGui          = game:GetService("CoreGui")
 
@@ -828,6 +829,8 @@ function Button.new(section, text, callback)
         Font = CONFIG.Font, Text = text, TextSize = 17,
         TextColor3 = theme.Text, Parent = row,
     })
+    self._button = btn
+    self._text = text
     Util.Corner(Spacing[3], btn)
     Util.ChipSheen(btn, self._theme)
     self._theme:Register(btn, function(b, t)
@@ -889,6 +892,7 @@ function Dropdown.new(section, text, options, callback, default)
     self._options  = table.clone(options or {})
     self._callback = callback
     self._open     = false
+    self._multiple = false
     self._value    = default or self._options[1]
 
     local theme = self._theme:Get()
@@ -926,7 +930,7 @@ function Dropdown.new(section, text, options, callback, default)
         BackgroundTransparency = 1,
         Size = UDim2.new(1, -44, 1, 0),
         Position = UDim2.new(0, 14, 0, 0),
-        Font = CONFIG.Font, Text = tostring(self._value or "Select..."), TextSize = 17,
+        Font = CONFIG.Font, Text = self:_formatValue(self._value), TextSize = 17,
         TextColor3 = theme.Text,
         TextXAlignment = Enum.TextXAlignment.Left,
         ZIndex = Z.Trigger, Parent = trigger,
@@ -968,6 +972,19 @@ function Dropdown.new(section, text, options, callback, default)
     return self
 end
 
+function Dropdown:_formatValue(value)
+    if type(value) == "table" then
+        if #value == 0 then
+            return "None"
+        elseif #value == 1 then
+            return tostring(value[1])
+        else
+            return "Various"
+        end
+    end
+    return tostring(value or "Select...")
+end
+
 function Dropdown:_buildMenu()
     if self._menu then self._menu:Destroy() end
     local theme = self._theme:Get()
@@ -1007,7 +1024,7 @@ function Dropdown:_buildMenu()
     LayoutManager.BindScrollCanvas(scroll, layout)
 
     for i, opt in ipairs(self._options) do
-        local isSel = (opt == self._value)
+        local isSel = self._multiple and type(self._value) == "table" and table.find(self._value, opt) ~= nil or (opt == self._value)
         local optBtn = Util.Create("TextButton", {
             Size = UDim2.new(1, 0, 0, 30),
             BackgroundColor3 = isSel and theme.Accent or theme.SecondaryLight,
@@ -1096,10 +1113,20 @@ end
 
 function Dropdown:Refresh(newValues)
     self._options = table.clone(newValues or {})
-    if not table.find(self._options, self._value) then
+    if self._multiple then
+        local kept = {}
+        if type(self._value) == "table" then
+            for _, value in ipairs(self._value) do
+                if table.find(self._options, value) then
+                    table.insert(kept, value)
+                end
+            end
+        end
+        self._value = kept
+    elseif not table.find(self._options, self._value) then
         self._value = self._options[1]
-        self._selectedLabel.Text = tostring(self._value or "Select...")
     end
+    self._selectedLabel.Text = self:_formatValue(self._value)
     if self._open then self:_buildMenu(); self:_positionMenu() end
 end
 
@@ -1282,6 +1309,7 @@ end
 function Textbox:Set(value)
     self._value = tostring(value)
     self._input.Text = self._value
+    if self._callback then task.spawn(self._callback, self._value) end
     self.Changed:Fire(self._value)
 end
 
@@ -1360,7 +1388,13 @@ function Paragraph.new(section, title, body)
 end
 
 function Paragraph:Set(body)
-    self._body.Text = body
+    if type(body) == "table" then
+        if body.Title and self._title then self._title.Text = tostring(body.Title) end
+        if body.Content and self._body then self._body.Text = tostring(body.Content) end
+        self.Changed:Fire(body)
+        return
+    end
+    self._body.Text = tostring(body)
     self.Changed:Fire(body)
 end
 
@@ -1438,8 +1472,11 @@ function Keybind.new(section, text, defaultKey, callback)
 end
 
 function Keybind:Set(keyCode)
+    if type(keyCode) == "string" then
+        keyCode = Enum.KeyCode[keyCode] or Enum.KeyCode.Unknown
+    end
     self._value = keyCode
-    self._keyBtn.Text = keyCode.Name
+    self._keyBtn.Text = keyCode and keyCode.Name or "Unknown"
     self.Changed:Fire(keyCode)
 end
 
@@ -1682,9 +1719,6 @@ local Window = {}
 Window.__index = Window
 
 local MIN_W, MIN_H = 540, 360
-local ACCENT_CORNER_GAP = 8
-local ACCENT_CORNER_LEN = 42
-local ACCENT_CORNER_THICKNESS = 5
 
 function Window.new(library, opts)
     local self = setmetatable({}, Window)
@@ -1721,45 +1755,6 @@ function Window.new(library, opts)
         BorderSizePixel = 0, ZIndex = Z.Window, Parent = gui,
     })
     self.Backdrop = backdrop
-    self._cornerAccents = {}
-
-    local function makeCornerAccent(name, pos, size, anchor)
-        local accent = Util.Create("Frame", {
-            Name = name,
-            AnchorPoint = anchor or Vector2.new(0, 0),
-            Position = pos,
-            Size = size,
-            BackgroundColor3 = theme.Accent,
-            BackgroundTransparency = 0,
-            BorderSizePixel = 0,
-            ZIndex = Z.Window,
-            Parent = backdrop,
-        })
-        Util.Corner(ACCENT_CORNER_THICKNESS, accent)
-        self._cornerAccents[#self._cornerAccents + 1] = accent
-        self._theme:Register(accent, function(a, t)
-            a.BackgroundColor3 = t.Accent
-            a.BackgroundTransparency = 0
-        end)
-        return accent
-    end
-
-    local gap = ACCENT_CORNER_GAP
-    local len = ACCENT_CORNER_LEN
-    local thick = ACCENT_CORNER_THICKNESS
-
-    -- Corner-only accents. This intentionally replaces the old full green backdrop frame.
-    makeCornerAccent("Accent_TL_H", UDim2.new(0, gap, 0, -gap - thick), UDim2.new(0, len, 0, thick))
-    makeCornerAccent("Accent_TL_V", UDim2.new(0, -gap - thick, 0, gap), UDim2.new(0, thick, 0, len))
-
-    makeCornerAccent("Accent_TR_H", UDim2.new(1, -gap, 0, -gap - thick), UDim2.new(0, len, 0, thick), Vector2.new(1, 0))
-    makeCornerAccent("Accent_TR_V", UDim2.new(1, gap, 0, gap), UDim2.new(0, thick, 0, len))
-
-    makeCornerAccent("Accent_BL_H", UDim2.new(0, gap, 1, gap), UDim2.new(0, len, 0, thick))
-    makeCornerAccent("Accent_BL_V", UDim2.new(0, -gap - thick, 1, -gap), UDim2.new(0, thick, 0, len), Vector2.new(0, 1))
-
-    makeCornerAccent("Accent_BR_H", UDim2.new(1, -gap, 1, gap), UDim2.new(0, len, 0, thick), Vector2.new(1, 0))
-    makeCornerAccent("Accent_BR_V", UDim2.new(1, gap, 1, -gap), UDim2.new(0, thick, 0, len), Vector2.new(0, 1))
 
     local main = Util.Create("Frame", {
         Name = "MainWindow", AnchorPoint = Vector2.new(0.5, 0.5),
@@ -1948,19 +1943,9 @@ function Window:_playOpen()
     local baseT = self:_panelTransparency()
     main.BackgroundTransparency = 1
     if self.Backdrop then self.Backdrop.BackgroundTransparency = 1 end
-    if self._cornerAccents then
-        for _, accent in ipairs(self._cornerAccents) do
-            accent.BackgroundTransparency = 1
-        end
-    end
     task.wait()
     Util.Tween(openScale, { Scale = 1 }, 0.34, Enum.EasingStyle.Quint)
     Util.Tween(main, { BackgroundTransparency = baseT }, 0.3)
-    if self._cornerAccents then
-        for _, accent in ipairs(self._cornerAccents) do
-            Util.Tween(accent, { BackgroundTransparency = 0 }, 0.24, Enum.EasingStyle.Quint)
-        end
-    end
     task.delay(0.04, function()
         self._theme:_reapply()
     end)
@@ -2179,11 +2164,6 @@ function Window:Close()
     Util.Tween(closeScale, { Scale = 0.92 }, 0.26, Enum.EasingStyle.Quint)
     Util.Tween(main, { BackgroundTransparency = 1 }, 0.24)
     if self.Backdrop then Util.Tween(self.Backdrop, { BackgroundTransparency = 1 }, 0.24) end
-    if self._cornerAccents then
-        for _, accent in ipairs(self._cornerAccents) do
-            Util.Tween(accent, { BackgroundTransparency = 1 }, 0.2, Enum.EasingStyle.Quint)
-        end
-    end
     for _, d in ipairs(main:GetDescendants()) do
         if d:IsA("GuiObject") then
             pcall(function() Util.Tween(d, { BackgroundTransparency = 1, TextTransparency = 1, ImageTransparency = 1 }, 0.22) end)
@@ -2205,6 +2185,7 @@ function Library.new()
     local self = setmetatable({}, Library)
     self._theme = ThemeManager.new(DEFAULT_THEME)
     self._windows = {}
+    self.Flags = {}
     Logger.Init("Nature UI initialized — theme:", self._theme:GetCurrentName())
     return self
 end
@@ -2259,5 +2240,298 @@ Library.Signal = Signal
 Library.Cleaner = Cleaner
 Library.Spacing = Spacing
 Library.Logger = Logger
+
+
+-- Rayfield-style compatibility helpers. These preserve Nature's existing Add* API
+-- while allowing common Rayfield scripts to run with Create* method names.
+local function _settings(value, fallbackName)
+    if type(value) == "table" then return value end
+    return { Name = tostring(value or fallbackName or "Element") }
+end
+
+local function _safeCallback(fn, ...)
+    if type(fn) ~= "function" then return end
+    local args = { ... }
+    task.spawn(function()
+        local ok, err = pcall(fn, table.unpack(args))
+        if not ok then
+            Logger.Exec("Callback error:", tostring(err))
+        end
+    end)
+end
+
+local function _registerFlagFromSection(section, settings, component)
+    local lib = section and section._tab and section._tab._window and section._tab._window._library
+    if lib and settings and settings.Flag then
+        lib.Flags[settings.Flag] = component
+        component.Flag = settings.Flag
+    end
+    return component
+end
+
+function Button:Set(newText)
+    self._value = newText
+    self._text = tostring(newText)
+    if self._button then
+        self._button.Text = self._text
+    end
+    self.Changed:Fire(self._text)
+end
+
+function Section:CreateButton(settings)
+    settings = _settings(settings, "Button")
+    local comp = self:AddButton(settings.Name or "Button", function()
+        _safeCallback(settings.Callback)
+    end)
+    comp.Type = "Button"
+    return _registerFlagFromSection(self, settings, comp)
+end
+
+function Section:CreateToggle(settings)
+    settings = _settings(settings, "Toggle")
+    local comp
+    comp = self:AddToggle(settings.Name or "Toggle", function()
+        comp.CurrentValue = true
+        _safeCallback(settings.Callback, true)
+    end, function()
+        comp.CurrentValue = false
+        _safeCallback(settings.Callback, false)
+    end, settings.CurrentValue and true or false)
+    comp.Type = "Toggle"
+    comp.CurrentValue = comp:Get()
+    return _registerFlagFromSection(self, settings, comp)
+end
+
+function Section:CreateSlider(settings)
+    settings = _settings(settings, "Slider")
+    local range = settings.Range or { settings.Min or 0, settings.Max or 100 }
+    local min = range[1] or 0
+    local max = range[2] or 100
+    local comp
+    comp = self:AddSlider(settings.Name or "Slider", min, max, settings.CurrentValue or settings.Default or min, function(value)
+        if comp then comp.CurrentValue = value end
+        _safeCallback(settings.Callback, value)
+    end)
+    comp.Type = "Slider"
+    comp.CurrentValue = comp:Get()
+    comp.Range = { min, max }
+    comp.Increment = settings.Increment or 1
+    comp.Suffix = settings.Suffix or ""
+    return _registerFlagFromSection(self, settings, comp)
+end
+
+function Section:CreateInput(settings)
+    settings = _settings(settings, "Input")
+    local comp
+    comp = self:AddTextbox(settings.Name or "Input", settings.PlaceholderText or settings.Placeholder or "Input", function(text)
+        if comp then comp.CurrentValue = text end
+        _safeCallback(settings.Callback, text)
+        if comp and settings.RemoveTextAfterFocusLost and comp._input then
+            comp._input.Text = ""
+        end
+    end)
+    comp.Type = "Input"
+    comp.CurrentValue = comp:Get() or ""
+    return _registerFlagFromSection(self, settings, comp)
+end
+
+function Section:CreateDropdown(settings)
+    settings = _settings(settings, "Dropdown")
+    local options = settings.Options or {}
+    local current = settings.CurrentOption or settings.Default or options[1]
+    if type(current) == "table" and not settings.MultipleOptions then
+        current = current[1]
+    end
+    local comp
+    comp = self:AddDropdown(settings.Name or "Dropdown", options, function(value)
+        if settings.MultipleOptions then
+            comp.CurrentOption = type(value) == "table" and table.clone(value) or { value }
+            _safeCallback(settings.Callback, table.clone(comp.CurrentOption))
+        else
+            local selected = type(value) == "table" and value[1] or value
+            comp.CurrentOption = { selected }
+            _safeCallback(settings.Callback, table.clone(comp.CurrentOption))
+        end
+    end, current)
+    comp.Type = "Dropdown"
+    comp._multiple = settings.MultipleOptions and true or false
+    if comp._multiple and type(comp._value) ~= "table" then
+        comp._value = comp._value and { comp._value } or {}
+        if comp._selectedLabel then comp._selectedLabel.Text = comp:_formatValue(comp._value) end
+    end
+    comp.CurrentOption = comp._multiple and (type(comp._value) == "table" and table.clone(comp._value) or {}) or { comp:Get() }
+    return _registerFlagFromSection(self, settings, comp)
+end
+
+function Section:CreateKeybind(settings)
+    settings = _settings(settings, "Keybind")
+    local key = settings.CurrentKeybind or settings.Keybind or settings.Default or Enum.KeyCode.Unknown
+    if type(key) == "string" then key = Enum.KeyCode[key] or Enum.KeyCode.Unknown end
+    local comp
+    comp = self:AddKeybind(settings.Name or "Keybind", key, function()
+        if comp then comp.CurrentKeybind = comp:Get() end
+        _safeCallback(settings.Callback)
+    end)
+    comp.Type = "Keybind"
+    comp.CurrentKeybind = comp:Get()
+    return _registerFlagFromSection(self, settings, comp)
+end
+
+function Section:CreateLabel(settings)
+    if type(settings) == "table" then settings = settings.Name or settings.Text or settings.Title or "Label" end
+    local comp = self:AddLabel(tostring(settings or "Label"))
+    comp.Type = "Label"
+    return comp
+end
+
+function Section:CreateParagraph(settings)
+    settings = type(settings) == "table" and settings or { Title = "Paragraph", Content = tostring(settings or "") }
+    local comp = self:AddParagraph(settings.Title or "Paragraph", settings.Content or settings.Body or "")
+    comp.Type = "Paragraph"
+    return comp
+end
+
+function Section:CreateColorPicker(settings)
+    settings = _settings(settings, "ColorPicker")
+    local initial = settings.Color or Color3.fromRGB(255, 255, 255)
+    local comp = self:AddButton((settings.Name or "ColorPicker") .. "  RGB(" .. math.floor(initial.R * 255) .. ", " .. math.floor(initial.G * 255) .. ", " .. math.floor(initial.B * 255) .. ")", function()
+        _safeCallback(settings.Callback, initial)
+    end)
+    comp.Type = "ColorPicker"
+    comp.Color = initial
+    function comp:Set(color)
+        if typeof(color) == "Color3" then
+            self.Color = color
+            if self._button then
+                self._button.Text = (settings.Name or "ColorPicker") .. "  RGB(" .. math.floor(color.R * 255) .. ", " .. math.floor(color.G * 255) .. ", " .. math.floor(color.B * 255) .. ")"
+            end
+            _safeCallback(settings.Callback, color)
+            self.Changed:Fire(color)
+        end
+    end
+    return _registerFlagFromSection(self, settings, comp)
+end
+
+function Tab:_compatSection()
+    if self._compatCurrentSection then return self._compatCurrentSection end
+    self._compatCurrentSection = self:AddSection("Main")
+    return self._compatCurrentSection
+end
+
+function Tab:CreateSection(sectionName)
+    local section = self:AddSection(sectionName or "Section")
+    self._compatCurrentSection = section
+    return section
+end
+
+function Tab:CreateButton(settings) return self:_compatSection():CreateButton(settings) end
+function Tab:CreateToggle(settings) return self:_compatSection():CreateToggle(settings) end
+function Tab:CreateSlider(settings) return self:_compatSection():CreateSlider(settings) end
+function Tab:CreateInput(settings) return self:_compatSection():CreateInput(settings) end
+function Tab:CreateDropdown(settings) return self:_compatSection():CreateDropdown(settings) end
+function Tab:CreateKeybind(settings) return self:_compatSection():CreateKeybind(settings) end
+function Tab:CreateLabel(settings) return self:_compatSection():CreateLabel(settings) end
+function Tab:CreateParagraph(settings) return self:_compatSection():CreateParagraph(settings) end
+function Tab:CreateColorPicker(settings) return self:_compatSection():CreateColorPicker(settings) end
+
+function Window:CreateTab(name, image)
+    return self:AddTab(name, image)
+end
+
+function Library:Notify(settings)
+    settings = settings or {}
+    local gui
+    if self._windows[1] and self._windows[1].Gui then
+        gui = self._windows[1].Gui
+    else
+        gui = Util.Create("ScreenGui", {
+            Name = "NatureNotifications", ResetOnSpawn = false,
+            ZIndexBehavior = Enum.ZIndexBehavior.Sibling, IgnoreGuiInset = true,
+            DisplayOrder = 1000, Parent = Util.GetGuiParent(),
+        })
+    end
+    local theme = self._theme:Get()
+    local card = Util.Create("Frame", {
+        Name = "Notification", AnchorPoint = Vector2.new(1, 1),
+        Position = UDim2.new(1, -24, 1, 80), Size = UDim2.new(0, 300, 0, 86),
+        BackgroundColor3 = theme.PanelTop, BackgroundTransparency = 0.02,
+        BorderSizePixel = 0, ZIndex = Z.Overlay + 20, Parent = gui,
+    })
+    Util.Corner(14, card)
+    Util.Stroke(card, theme.Border, 1, 0.18)
+    Util.Padding(card, 14)
+    local title = Util.Create("TextLabel", {
+        BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 22),
+        Font = CONFIG.FontBold, Text = tostring(settings.Title or "Notification"), TextSize = 17,
+        TextColor3 = theme.Text, TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = card.ZIndex + 1, Parent = card,
+    })
+    local body = Util.Create("TextLabel", {
+        BackgroundTransparency = 1, Position = UDim2.new(0, 0, 0, 28), Size = UDim2.new(1, 0, 1, -28),
+        Font = CONFIG.FontRegular, Text = tostring(settings.Content or settings.Description or ""), TextSize = 14,
+        TextWrapped = true, TextColor3 = theme.TextDim, TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Top, ZIndex = card.ZIndex + 1, Parent = card,
+    })
+    card.BackgroundTransparency = 1
+    title.TextTransparency = 1
+    body.TextTransparency = 1
+    Util.Tween(card, { Position = UDim2.new(1, -24, 1, -24), BackgroundTransparency = 0.02 }, 0.32, Enum.EasingStyle.Quint)
+    Util.Tween(title, { TextTransparency = 0 }, 0.22, Enum.EasingStyle.Quint)
+    Util.Tween(body, { TextTransparency = 0 }, 0.22, Enum.EasingStyle.Quint)
+    task.delay(settings.Duration or 6.5, function()
+        if not card.Parent then return end
+        Util.Tween(card, { Position = UDim2.new(1, -24, 1, 80), BackgroundTransparency = 1 }, 0.28, Enum.EasingStyle.Quint)
+        Util.Tween(title, { TextTransparency = 1 }, 0.22, Enum.EasingStyle.Quint)
+        Util.Tween(body, { TextTransparency = 1 }, 0.22, Enum.EasingStyle.Quint)
+        task.delay(0.32, function() if card then card:Destroy() end end)
+    end)
+end
+
+function Library:SaveConfiguration(fileName)
+    local data = {}
+    for flag, comp in pairs(self.Flags or {}) do
+        if comp.Type == "ColorPicker" then
+            local c = comp.Color or Color3.new(1,1,1)
+            data[flag] = { R = math.floor(c.R * 255), G = math.floor(c.G * 255), B = math.floor(c.B * 255) }
+        elseif comp.Type == "Dropdown" then
+            data[flag] = comp.CurrentOption or comp:Get()
+        elseif comp.Type == "Keybind" then
+            local key = comp.CurrentKeybind or comp:Get()
+            data[flag] = key and key.Name or "Unknown"
+        else
+            data[flag] = comp.CurrentValue or comp:Get()
+        end
+    end
+    local encoded = HttpService:JSONEncode(data)
+    if writefile then
+        local folder = "NatureUI"
+        if makefolder and not isfolder(folder) then pcall(makefolder, folder) end
+        writefile(folder .. "/" .. (fileName or "configuration") .. ".json", encoded)
+    end
+    return encoded
+end
+
+function Library:LoadConfiguration(configOrFile)
+    local raw = configOrFile
+    if readfile and isfile and type(configOrFile) == "string" and isfile(configOrFile) then
+        raw = readfile(configOrFile)
+    end
+    if type(raw) ~= "string" or raw == "" then return false end
+    local ok, data = pcall(function() return HttpService:JSONDecode(raw) end)
+    if not ok or type(data) ~= "table" then return false end
+    for flag, value in pairs(data) do
+        local comp = self.Flags and self.Flags[flag]
+        if comp and type(comp.Set) == "function" then
+            if comp.Type == "ColorPicker" and type(value) == "table" and value.R then
+                comp:Set(Color3.fromRGB(value.R, value.G, value.B))
+            elseif comp.Type == "Keybind" and type(value) == "string" then
+                comp:Set(Enum.KeyCode[value] or Enum.KeyCode.Unknown)
+            else
+                comp:Set(value)
+            end
+        end
+    end
+    return true
+end
 
 return Library.new()
