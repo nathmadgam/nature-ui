@@ -595,13 +595,27 @@ function OverlayManager.new(gui)
     self.Container = Util.Create("Frame", {
         Name = "OverlayContainer",
         BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 0),
         Size = UDim2.new(1, 0, 1, 0),
+        ClipsDescendants = true,
         ZIndex = Z.Overlay,
         Parent = gui,
     })
     self._active = nil
     self._activeOwner = nil
     return self
+end
+
+function OverlayManager:BindTo(root)
+    if not root or typeof(root) ~= "Instance" or not root:IsA("GuiObject") then
+        return
+    end
+    self.Root = root
+    self.Container.Parent = root
+    self.Container.Position = UDim2.new(0, 0, 0, 0)
+    self.Container.Size = UDim2.new(1, 0, 1, 0)
+    self.Container.ClipsDescendants = true
+    self.Container.ZIndex = Z.Overlay
 end
 
 function OverlayManager:Open(owner, closeFn)
@@ -1072,27 +1086,50 @@ function Dropdown:_buildMenu()
 end
 
 function Dropdown:_targetMenuHeight()
-    return math.min(#self._options * 32 + Spacing[2], 200)
-end
+    local baseHeight = math.min(#self._options * 32 + Spacing[2], 200)
+    if not self._trigger or not self._overlay or not self._overlay.Container then
+        return baseHeight
+    end
 
-function Dropdown:_positionMenu()
-    if not self._menu or not self._trigger then return end
-
-    -- Keep the dropdown as a true overlay, but anchor it strictly below the
-    -- trigger. Roblox AbsolutePosition is screen-space, while the overlay
-    -- container can have its own absolute origin, so subtract that origin.
-    -- This prevents the menu from appearing on top of the trigger.
     local triggerPos = self._trigger.AbsolutePosition
     local triggerSize = self._trigger.AbsoluteSize
     local overlayPos = self._overlay.Container.AbsolutePosition
+    local overlaySize = self._overlay.Container.AbsoluteSize
     local gap = self._menuGap or 12
+    local bottomPad = 8
+    local y = triggerPos.Y - overlayPos.Y + triggerSize.Y + gap
+    local availableBelow = overlaySize.Y - y - bottomPad
+
+    return math.max(0, math.min(baseHeight, availableBelow))
+end
+
+function Dropdown:_positionMenu()
+    if not self._menu or not self._trigger or not self._overlay or not self._overlay.Container then return end
+
+    -- Keep the dropdown as a true overlay, but anchor it strictly below the
+    -- trigger. The overlay is now a clipped descendant of the main window, so
+    -- the menu cannot draw outside the panel while scrolling or resizing.
+    local triggerPos = self._trigger.AbsolutePosition
+    local triggerSize = self._trigger.AbsoluteSize
+    local overlayPos = self._overlay.Container.AbsolutePosition
+    local overlaySize = self._overlay.Container.AbsoluteSize
+    local gap = self._menuGap or 12
+    local sidePad = 8
 
     local x = triggerPos.X - overlayPos.X
     local y = triggerPos.Y - overlayPos.Y + triggerSize.Y + gap
+    local width = math.min(triggerSize.X, math.max(0, overlaySize.X - sidePad * 2))
+    x = math.clamp(x, sidePad, math.max(sidePad, overlaySize.X - width - sidePad))
+
+    local height = self._menu.Size.Y.Offset
+    local maxHeight = self:_targetMenuHeight()
+    if height > maxHeight then
+        height = maxHeight
+    end
 
     self._menu.AnchorPoint = Vector2.new(0, 0)
     self._menu.Position = UDim2.new(0, x, 0, y)
-    self._menu.Size = UDim2.new(0, triggerSize.X, 0, self._menu.Size.Y.Offset)
+    self._menu.Size = UDim2.new(0, width, 0, height)
 end
 
 function Dropdown:_isPointInsideOverlay(point)
@@ -1111,6 +1148,15 @@ function Dropdown:_toggleOpen(force)
                 self:_positionMenu()
             end
         end)
+        if self._positionConn then
+            self._positionConn:Disconnect()
+            self._positionConn = nil
+        end
+        self._positionConn = RunService.RenderStepped:Connect(function()
+            if self._open and self._menu then
+                self:_positionMenu()
+            end
+        end)
         local targetH = self:_targetMenuHeight()
         Util.Tween(self._menu, { Size = UDim2.new(0, self._trigger.AbsoluteSize.X, 0, targetH) }, 0.18)
         Util.Tween(self._arrow, { Rotation = 180 })
@@ -1118,6 +1164,10 @@ function Dropdown:_toggleOpen(force)
         self._overlay:Open(self, function() self:_toggleOpen(false) end)
     else
         Util.Tween(self._arrow, { Rotation = 0 })
+        if self._positionConn then
+            self._positionConn:Disconnect()
+            self._positionConn = nil
+        end
         self.Instance.Size = UDim2.new(1, 0, 0, self._baseHeight)
         if self._menu then
             local menu = self._menu
@@ -1138,7 +1188,8 @@ function Dropdown:Set(value)
         self:_buildMenu()
         self:_positionMenu()
         local targetH = self:_targetMenuHeight()
-        self._menu.Size = UDim2.new(0, self._trigger.AbsoluteSize.X, 0, targetH)
+        self._menu.Size = UDim2.new(0, self._menu.AbsoluteSize.X, 0, targetH)
+        self:_positionMenu()
         self.Instance.Size = UDim2.new(1, 0, 0, self._baseHeight)
     end
     if self._callback then task.spawn(self._callback, value) end
@@ -1165,12 +1216,17 @@ function Dropdown:Refresh(newValues)
         self:_buildMenu()
         self:_positionMenu()
         local targetH = self:_targetMenuHeight()
-        self._menu.Size = UDim2.new(0, self._trigger.AbsoluteSize.X, 0, targetH)
+        self._menu.Size = UDim2.new(0, self._menu.AbsoluteSize.X, 0, targetH)
+        self:_positionMenu()
         self.Instance.Size = UDim2.new(1, 0, 0, self._baseHeight)
     end
 end
 
 function Dropdown:Destroy()
+    if self._positionConn then
+        self._positionConn:Disconnect()
+        self._positionConn = nil
+    end
     if self._menu then self._menu:Destroy() end
     self._overlay:Close(self)
     BaseComponent.Destroy(self)
@@ -1205,9 +1261,8 @@ function Slider.new(section, text, min, max, default, callback)
         BackgroundTransparency = theme.ControlT,
         BorderSizePixel = 0,
         Font = CONFIG.FontRegular, Text = tostring(self._value), TextSize = 15,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        TextStrokeColor3 = Color3.fromRGB(18, 26, 21),
-        TextStrokeTransparency = 0.18,
+        TextColor3 = Color3.fromRGB(18, 26, 21),
+        TextStrokeTransparency = 1,
         PlaceholderColor3 = theme.TextMuted,
         TextXAlignment = Enum.TextXAlignment.Center,
         ClearTextOnFocus = false,
@@ -1219,9 +1274,8 @@ function Slider.new(section, text, min, max, default, callback)
     self._theme:Register(valueLabel, function(b, t)
         b.BackgroundColor3 = t.SecondaryLight
         b.BackgroundTransparency = t.ControlT
-        b.TextColor3 = Color3.fromRGB(255, 255, 255)
-        b.TextStrokeColor3 = Color3.fromRGB(18, 26, 21)
-        b.TextStrokeTransparency = 0.18
+        b.TextColor3 = Color3.fromRGB(18, 26, 21)
+        b.TextStrokeTransparency = 1
         b.PlaceholderColor3 = t.TextMuted
     end)
     self._theme:Register(valueStroke, function(st, t)
@@ -1355,13 +1409,18 @@ function Textbox.new(section, text, placeholder, callback)
 
     local input = Util.Create("TextBox", {
         BackgroundTransparency = 1, Size = UDim2.new(1, -20, 1, 0),
-        Position = UDim2.new(0, 12, 0, 0), Font = CONFIG.Font, Text = "",
+        Position = UDim2.new(0, 12, 0, 0), Font = CONFIG.FontRegular, Text = "",
         PlaceholderText = placeholder or "Enter text...",
-        PlaceholderColor3 = theme.TextMuted, TextSize = 16, TextColor3 = theme.Text,
+        PlaceholderColor3 = theme.TextMuted, TextSize = 16, TextColor3 = Color3.fromRGB(18, 26, 21),
         TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, Parent = boxFrame,
     })
     self._input = input
-    self._theme:Register(input, function(b, t) b.TextColor3 = t.Text; b.PlaceholderColor3 = t.TextMuted end)
+    self._theme:Register(input, function(b, t)
+        b.Font = CONFIG.FontRegular
+        b.TextColor3 = Color3.fromRGB(18, 26, 21)
+        b.TextStrokeTransparency = 1
+        b.PlaceholderColor3 = t.TextMuted
+    end)
 
     self._cleaner:Add(boxFrame.MouseEnter:Connect(function()
         local t = self._theme:Get()
@@ -1873,6 +1932,7 @@ function Window.new(library, opts)
 
     local mainGrad = Util.GlassGradient(main, theme.PanelTop, theme.PanelBottom, 0.0, 0.14, 90)
     self.Main = main
+    self._overlay:BindTo(main)
     self._theme:Register(main, function(m, t)
         m.BackgroundColor3 = t.PanelTop
         m.BackgroundTransparency = t.PanelT * 0.35
@@ -2175,15 +2235,23 @@ function Window:_setupResize(main)
         BackgroundTransparency = 1, Text = "", AutoButtonColor = false,
         ZIndex = Z.Control, Parent = main,
     })
+    self._resizeHandle = handle
 
     local resizing, startPos, startSize = false, nil, nil
     self._cleaner:Add(handle.InputBegan:Connect(function(input)
+        if self._minimized then return end
         if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
             resizing, startPos, startSize = true, input.Position, main.AbsoluteSize
+            self._resizing = true
         end
     end))
     self._cleaner:Add(UserInputService.InputChanged:Connect(function(input)
+        if self._minimized then
+            resizing = false
+            self._resizing = false
+            return
+        end
         if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement
         or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - startPos
@@ -2194,7 +2262,10 @@ function Window:_setupResize(main)
     end))
     self._cleaner:Add(UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then resizing = false end
+        or input.UserInputType == Enum.UserInputType.Touch then
+            resizing = false
+            self._resizing = false
+        end
     end))
 end
 
@@ -2230,6 +2301,11 @@ function Window:SetSubtitle(_) if self._subtitleLabel then self._subtitleLabel.T
 function Window:ToggleMinimize()
     self._overlay:CloseAll()
     self._minimized = not self._minimized
+    self._resizing = false
+    if self._resizeHandle then
+        self._resizeHandle.Visible = not self._minimized
+        self._resizeHandle.Active = not self._minimized
+    end
     if self._minimized then
         self._savedSize = self.Main.Size
         Util.Tween(self.Body, { Position = UDim2.new(0, 0, 0, 72) }, 0.1)
