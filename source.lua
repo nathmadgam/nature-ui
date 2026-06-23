@@ -1738,7 +1738,31 @@ function Window.new(library, opts)
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
         IgnoreGuiInset = true, DisplayOrder = 999,
     })
-    pcall(function() gui.Parent = Util.GetGuiParent() end)
+
+    -- Remove any older Nature UI instance first. Without this, an old build can
+    -- remain underneath/above the new one and make the removed green decorations
+    -- look like they are still present.
+    local guiParent
+    pcall(function() guiParent = Util.GetGuiParent() end)
+    local function clearOldFrom(parent)
+        if not parent then return end
+        for _, child in ipairs(parent:GetChildren()) do
+            if child ~= gui and child.Name == "NatureUI" then
+                pcall(function() child:Destroy() end)
+            end
+        end
+    end
+    clearOldFrom(guiParent)
+    pcall(function() clearOldFrom(CoreGui) end)
+    pcall(function()
+        if LocalPlayer then clearOldFrom(LocalPlayer:FindFirstChildOfClass("PlayerGui")) end
+    end)
+
+    if guiParent then
+        gui.Parent = guiParent
+    else
+        pcall(function() gui.Parent = Util.GetGuiParent() end)
+    end
     self.Gui = gui
     self._cleaner:Add(gui)
 
@@ -1748,13 +1772,10 @@ function Window.new(library, opts)
     self._overlay = OverlayManager.new(gui)
     self._cleaner:Add(self._overlay)
 
-    local backdrop = Util.Create("Frame", {
-        Name = "Backdrop", AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.new(0.5, 0, 0.5, 0), Size = UDim2.new(0, 720, 0, 470),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0, ZIndex = Z.Window, Parent = gui,
-    })
-    self.Backdrop = backdrop
+    -- No outer backdrop / corner accent / green decoration.
+    -- The window is only the clean white Rayfield-style panel.
+    local backdrop = nil
+    self.Backdrop = nil
 
     local main = Util.Create("Frame", {
         Name = "MainWindow", AnchorPoint = Vector2.new(0.5, 0.5),
@@ -1776,12 +1797,7 @@ function Window.new(library, opts)
         g.Color = ColorSequence.new(t.PanelTop, t.PanelBottom)
     end)
 
-    self._cleaner:Add(main:GetPropertyChangedSignal("Position"):Connect(function()
-        backdrop.Position = main.Position
-    end))
-    self._cleaner:Add(main:GetPropertyChangedSignal("Size"):Connect(function()
-        backdrop.Size = main.Size
-    end))
+    -- No backdrop tracking: removes the green outer/corner marks entirely.
 
     local header = Util.Create("Frame", {
         Name = "Header", BackgroundTransparency = 1,
@@ -1942,7 +1958,6 @@ function Window:_playOpen()
     local openScale = Util.Create("UIScale", { Scale = 0.94, Parent = main })
     local baseT = self:_panelTransparency()
     main.BackgroundTransparency = 1
-    if self.Backdrop then self.Backdrop.BackgroundTransparency = 1 end
     task.wait()
     Util.Tween(openScale, { Scale = 1 }, 0.34, Enum.EasingStyle.Quint)
     Util.Tween(main, { BackgroundTransparency = baseT }, 0.3)
@@ -2016,11 +2031,6 @@ function Window:_setupDragging(handle, target)
             BackgroundTransparency = self:_panelTransparency(),
         }, 0.18, Enum.EasingStyle.Quint)
 
-        if self.Backdrop then
-            Util.Tween(self.Backdrop, {
-                Size = UDim2.new(0, target.AbsoluteSize.X, 0, target.AbsoluteSize.Y),
-            }, 0.2, Enum.EasingStyle.Quint)
-        end
     end
 
     self._cleaner:Add(handle.InputBegan:Connect(function(input)
@@ -2035,11 +2045,6 @@ function Window:_setupDragging(handle, target)
         startPos = target.Position
 
         Util.Tween(target, { BackgroundTransparency = self:_panelTransparency() * 0.6 }, 0.12)
-        if self.Backdrop then
-            Util.Tween(self.Backdrop, {
-                Size = UDim2.new(0, target.AbsoluteSize.X, 0, target.AbsoluteSize.Y),
-            }, 0.16, Enum.EasingStyle.Quint)
-        end
 
         disconnectInputEnd()
         inputEndedConn = input.Changed:Connect(function()
@@ -2163,7 +2168,6 @@ function Window:Close()
     local closeScale = Util.Create("UIScale", { Scale = 1, Parent = main })
     Util.Tween(closeScale, { Scale = 0.92 }, 0.26, Enum.EasingStyle.Quint)
     Util.Tween(main, { BackgroundTransparency = 1 }, 0.24)
-    if self.Backdrop then Util.Tween(self.Backdrop, { BackgroundTransparency = 1 }, 0.24) end
     for _, d in ipairs(main:GetDescendants()) do
         if d:IsA("GuiObject") then
             pcall(function() Util.Tween(d, { BackgroundTransparency = 1, TextTransparency = 1, ImageTransparency = 1 }, 0.22) end)
