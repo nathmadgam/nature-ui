@@ -993,15 +993,13 @@ function Dropdown:_buildMenu()
 
     local menu = Util.Create("Frame", {
         Name = "DropdownMenu",
-        AnchorPoint = Vector2.new(1, 0),
-        Position = UDim2.new(1, 0, 0, self._baseHeight + self._menuGap),
         BackgroundColor3 = theme.Primary,
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
-        Size = UDim2.new(0.46, 0, 0, 0),
+        Size = UDim2.new(0, self._trigger.AbsoluteSize.X, 0, 0),
         ClipsDescendants = true,
-        ZIndex = Z.Trigger + 8,
-        Parent = self.Instance,
+        ZIndex = Z.Overlay + 1,
+        Parent = self._overlay.Container,
     })
     Util.Corner(Spacing[3], menu)
     local menuStroke = Util.Stroke(menu, theme.Border, 1, 0.12)
@@ -1021,7 +1019,7 @@ function Dropdown:_buildMenu()
         ScrollBarImageColor3 = Color3.fromRGB(170, 170, 175),
         ScrollBarImageTransparency = 0.4,
         CanvasSize = UDim2.new(0, 0, 0, 0),
-        ZIndex = Z.Trigger + 9, Parent = menu,
+        ZIndex = Z.Overlay + 2, Parent = menu,
     })
     local layout = LayoutManager.VerticalList(scroll, Spacing[1] / 2, Enum.HorizontalAlignment.Center)
     Util.Padding(scroll, Spacing[1])
@@ -1032,11 +1030,11 @@ function Dropdown:_buildMenu()
         local optBtn = Util.Create("TextButton", {
             Size = UDim2.new(1, 0, 0, 30),
             BackgroundColor3 = isSel and theme.Accent or theme.SecondaryLight,
-            BackgroundTransparency = isSel and 0 or 0,
+            BackgroundTransparency = 0,
             AutoButtonColor = false, BorderSizePixel = 0,
             Font = CONFIG.Font, Text = tostring(opt), TextSize = 16,
             TextColor3 = isSel and theme.AccentText or theme.Text, LayoutOrder = i,
-            ZIndex = Z.Trigger + 10, Parent = scroll,
+            ZIndex = Z.Overlay + 3, Parent = scroll,
         })
         Util.Corner(Spacing[2], optBtn)
         self._theme:Register(optBtn, function(b, t)
@@ -1046,13 +1044,15 @@ function Dropdown:_buildMenu()
             b.TextColor3 = selectedNow and t.AccentText or t.Text
         end)
         optBtn.MouseEnter:Connect(function()
-            if opt ~= self._value then
+            local selectedNow = self._multiple and type(self._value) == "table" and table.find(self._value, opt) ~= nil or (opt == self._value)
+            if not selectedNow then
                 local t = self._theme:Get()
                 Util.Tween(optBtn, { BackgroundColor3 = t.ControlHover or t.SecondaryLight, BackgroundTransparency = 0 }, 0.1)
             end
         end)
         optBtn.MouseLeave:Connect(function()
-            if opt ~= self._value then
+            local selectedNow = self._multiple and type(self._value) == "table" and table.find(self._value, opt) ~= nil or (opt == self._value)
+            if not selectedNow then
                 local t = self._theme:Get()
                 Util.Tween(optBtn, { BackgroundColor3 = t.SecondaryLight, BackgroundTransparency = 0 }, 0.1)
             end
@@ -1074,9 +1074,12 @@ end
 
 function Dropdown:_positionMenu()
     if not self._menu then return end
-    self._menu.AnchorPoint = Vector2.new(1, 0)
-    self._menu.Position = UDim2.new(1, 0, 0, self._baseHeight + self._menuGap)
-    self._menu.Size = UDim2.new(0.46, 0, 0, self._menu.Size.Y.Offset)
+    local pos = self._trigger.AbsolutePosition
+    local size = self._trigger.AbsoluteSize
+    local gap = self._menuGap or Spacing[2]
+    self._menu.AnchorPoint = Vector2.new(0, 0)
+    self._menu.Position = UDim2.new(0, pos.X, 0, pos.Y + size.Y + gap)
+    self._menu.Size = UDim2.new(0, size.X, 0, self._menu.Size.Y.Offset)
 end
 
 function Dropdown:_isPointInsideOverlay(point)
@@ -1091,18 +1094,17 @@ function Dropdown:_toggleOpen(force)
         self:_buildMenu()
         self:_positionMenu()
         local targetH = self:_targetMenuHeight()
-        Util.Tween(self.Instance, { Size = UDim2.new(1, 0, 0, self._baseHeight + self._menuGap + targetH) }, 0.2)
-        Util.Tween(self._menu, { Size = UDim2.new(0.46, 0, 0, targetH) }, 0.18)
+        Util.Tween(self._menu, { Size = UDim2.new(0, self._trigger.AbsoluteSize.X, 0, targetH) }, 0.18)
         Util.Tween(self._arrow, { Rotation = 180 })
 
         self._overlay:Open(self, function() self:_toggleOpen(false) end)
     else
         Util.Tween(self._arrow, { Rotation = 0 })
-        Util.Tween(self.Instance, { Size = UDim2.new(1, 0, 0, self._baseHeight) }, 0.18)
+        self.Instance.Size = UDim2.new(1, 0, 0, self._baseHeight)
         if self._menu then
             local menu = self._menu
             self._menu = nil
-            Util.Tween(menu, { Size = UDim2.new(0.46, 0, 0, 0) }, 0.14)
+            Util.Tween(menu, { Size = UDim2.new(0, menu.AbsoluteSize.X, 0, 0) }, 0.14)
             task.delay(CONFIG.AnimationDuration, function()
                 if menu then menu:Destroy() end
             end)
@@ -1118,8 +1120,8 @@ function Dropdown:Set(value)
         self:_buildMenu()
         self:_positionMenu()
         local targetH = self:_targetMenuHeight()
-        self._menu.Size = UDim2.new(0.46, 0, 0, targetH)
-        self.Instance.Size = UDim2.new(1, 0, 0, self._baseHeight + self._menuGap + targetH)
+        self._menu.Size = UDim2.new(0, self._trigger.AbsoluteSize.X, 0, targetH)
+        self.Instance.Size = UDim2.new(1, 0, 0, self._baseHeight)
     end
     if self._callback then task.spawn(self._callback, value) end
     self.Changed:Fire(value)
@@ -1145,8 +1147,8 @@ function Dropdown:Refresh(newValues)
         self:_buildMenu()
         self:_positionMenu()
         local targetH = self:_targetMenuHeight()
-        self._menu.Size = UDim2.new(0.46, 0, 0, targetH)
-        self.Instance.Size = UDim2.new(1, 0, 0, self._baseHeight + self._menuGap + targetH)
+        self._menu.Size = UDim2.new(0, self._trigger.AbsoluteSize.X, 0, targetH)
+        self.Instance.Size = UDim2.new(1, 0, 0, self._baseHeight)
     end
 end
 
