@@ -57,29 +57,31 @@ THEMES.Nature = {
     BackdropTop    = Color3.fromRGB(126, 206, 146),
     BackdropBottom = Color3.fromRGB(220, 244, 228),
     BackdropT      = 0.0,
-    Primary        = Color3.fromRGB(255, 255, 255),
+    Primary        = Color3.fromRGB(249, 253, 250),
     PrimaryLight   = Color3.fromRGB(255, 255, 255),
-    Secondary      = Color3.fromRGB(250, 254, 251),
-    SecondaryLight = Color3.fromRGB(244, 251, 247),
-    PanelTop       = Color3.fromRGB(250, 254, 251),
-    PanelBottom    = Color3.fromRGB(232, 246, 237),
-    PanelT         = 0.32,
-    PanelTopT      = 0.10,
-    PanelBottomT   = 0.40,
-    ControlT       = 0.42,
-    ControlTopT    = 0.18,
-    ControlBottomT = 0.50,
-    Accent         = Color3.fromRGB(94, 196, 118),
-    AccentTop      = Color3.fromRGB(108, 206, 130),
-    AccentBottom   = Color3.fromRGB(82, 182, 106),
-    AccentDim      = Color3.fromRGB(150, 218, 168),
+    Secondary      = Color3.fromRGB(244, 250, 246),
+    SecondaryLight = Color3.fromRGB(236, 246, 240),
+    ControlHover   = Color3.fromRGB(228, 241, 233),
+    ControlPressed = Color3.fromRGB(218, 234, 225),
+    PanelTop       = Color3.fromRGB(248, 253, 249),
+    PanelBottom    = Color3.fromRGB(240, 248, 243),
+    PanelT         = 0.03,
+    PanelTopT      = 0.00,
+    PanelBottomT   = 0.02,
+    ControlT       = 0.00,
+    ControlTopT    = 0.00,
+    ControlBottomT = 0.04,
+    Accent         = Color3.fromRGB(74, 176, 98),
+    AccentTop      = Color3.fromRGB(74, 176, 98),
+    AccentBottom   = Color3.fromRGB(74, 176, 98),
+    AccentDim      = Color3.fromRGB(134, 206, 151),
     AccentText     = Color3.fromRGB(255, 255, 255),
-    Text           = Color3.fromRGB(34, 56, 44),
-    TextDim        = Color3.fromRGB(88, 116, 100),
-    TextMuted      = Color3.fromRGB(150, 174, 160),
-    Border         = Color3.fromRGB(216, 236, 224),
+    Text           = Color3.fromRGB(31, 49, 39),
+    TextDim        = Color3.fromRGB(78, 102, 88),
+    TextMuted      = Color3.fromRGB(128, 154, 140),
+    Border         = Color3.fromRGB(197, 219, 206),
     BorderGlow     = Color3.fromRGB(255, 255, 255),
-    ToggleOff      = Color3.fromRGB(212, 224, 216),
+    ToggleOff      = Color3.fromRGB(208, 222, 214),
     ToggleThumb    = Color3.fromRGB(255, 255, 255),
 }
 
@@ -88,29 +90,31 @@ THEMES.Apple = {
     BackdropTop    = Color3.fromRGB(228, 230, 236),
     BackdropBottom = Color3.fromRGB(244, 245, 248),
     BackdropT      = 0.02,
-    Primary        = Color3.fromRGB(255, 255, 255),
+    Primary        = Color3.fromRGB(250, 251, 253),
     PrimaryLight   = Color3.fromRGB(255, 255, 255),
-    Secondary      = Color3.fromRGB(255, 255, 255),
-    SecondaryLight = Color3.fromRGB(248, 249, 251),
-    PanelTop       = Color3.fromRGB(255, 255, 255),
-    PanelBottom    = Color3.fromRGB(238, 240, 244),
-    PanelT         = 0.26,
-    PanelTopT      = 0.10,
-    PanelBottomT   = 0.40,
-    ControlT       = 0.36,
-    ControlTopT    = 0.20,
-    ControlBottomT = 0.48,
+    Secondary      = Color3.fromRGB(246, 247, 250),
+    SecondaryLight = Color3.fromRGB(236, 238, 243),
+    ControlHover   = Color3.fromRGB(228, 230, 236),
+    ControlPressed = Color3.fromRGB(218, 221, 229),
+    PanelTop       = Color3.fromRGB(251, 252, 254),
+    PanelBottom    = Color3.fromRGB(244, 246, 249),
+    PanelT         = 0.03,
+    PanelTopT      = 0.00,
+    PanelBottomT   = 0.02,
+    ControlT       = 0.00,
+    ControlTopT    = 0.00,
+    ControlBottomT = 0.04,
     Accent         = Color3.fromRGB(10, 132, 255),
-    AccentTop      = Color3.fromRGB(40, 150, 255),
-    AccentBottom   = Color3.fromRGB(0, 118, 246),
+    AccentTop      = Color3.fromRGB(10, 132, 255),
+    AccentBottom   = Color3.fromRGB(10, 132, 255),
     AccentDim      = Color3.fromRGB(94, 174, 255),
     AccentText     = Color3.fromRGB(255, 255, 255),
     Text           = Color3.fromRGB(28, 28, 30),
-    TextDim        = Color3.fromRGB(99, 99, 102),
-    TextMuted      = Color3.fromRGB(150, 150, 154),
-    Border         = Color3.fromRGB(224, 226, 230),
+    TextDim        = Color3.fromRGB(86, 88, 92),
+    TextMuted      = Color3.fromRGB(140, 142, 148),
+    Border         = Color3.fromRGB(209, 212, 219),
     BorderGlow     = Color3.fromRGB(255, 255, 255),
-    ToggleOff      = Color3.fromRGB(225, 226, 230),
+    ToggleOff      = Color3.fromRGB(214, 217, 224),
     ToggleThumb    = Color3.fromRGB(255, 255, 255),
 }
 
@@ -158,6 +162,19 @@ function Util.Padding(parent, all, opts)
     })
 end
 
+function Util.PointInGui(point, gui)
+    if not point or not gui or typeof(gui) ~= "Instance" or not gui.Parent then
+        return false
+    end
+    if not gui:IsA("GuiObject") then
+        return false
+    end
+    local pos = gui.AbsolutePosition
+    local size = gui.AbsoluteSize
+    return point.X >= pos.X and point.X <= pos.X + size.X
+       and point.Y >= pos.Y and point.Y <= pos.Y + size.Y
+end
+
 function Util.Stroke(parent, color, thickness, transparency)
     return Util.Create("UIStroke", {
         Color = color or DEFAULT_THEME.Border,
@@ -196,35 +213,19 @@ end
 
 function Util.GlassStroke(parent, borderColor, glowColor, thickness)
     local stroke = Util.Create("UIStroke", {
-        Color = Color3.fromRGB(255, 255, 255),
+        Color = borderColor or DEFAULT_THEME.Border,
         Thickness = thickness or 1,
-        Transparency = 0.4,
+        Transparency = 0.22,
         ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
         Parent = parent,
     })
-    Util.Create("UIGradient", {
-        Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, glowColor or Color3.fromRGB(255, 255, 255)),
-            ColorSequenceKeypoint.new(0.5, borderColor or DEFAULT_THEME.Border),
-            ColorSequenceKeypoint.new(1, borderColor or DEFAULT_THEME.Border),
-        }),
-
-        Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0.35),
-            NumberSequenceKeypoint.new(0.4, 0.7),
-            NumberSequenceKeypoint.new(1, 0.92),
-        }),
-        Rotation = 90,
-        Parent = stroke,
-    })
     return stroke
 end
-
 function Util.InnerHighlight(parent)
     local hl = Util.Create("Frame", {
         Name = "InnerHighlight",
         BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 0.4,
+        BackgroundTransparency = 0.86,
         BorderSizePixel = 0,
         Position = UDim2.new(0, 0, 0, 0),
         Size = UDim2.new(1, 0, 0, 1.5),
@@ -244,25 +245,19 @@ end
 
 function Util.ChipGlass(frame, themeMgr)
     local t = themeMgr:Get()
-    local grad = Util.GlassGradient(frame, t.PanelTop, t.PanelBottom,
-        t.ControlTopT or 0.15, t.ControlBottomT or 0.5, 90)
+    local grad = Util.GlassGradient(frame, t.SecondaryLight, t.Secondary,
+        t.ControlTopT or 0, t.ControlBottomT or 0.04, 90)
     local stroke = Util.GlassStroke(frame, t.Border, t.BorderGlow, 1)
     themeMgr:Register(grad, function(g, th)
-        g.Color = ColorSequence.new(th.PanelTop, th.PanelBottom)
+        g.Color = ColorSequence.new(th.SecondaryLight, th.Secondary)
         g.Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, th.ControlTopT or 0.15),
-            NumberSequenceKeypoint.new(1, th.ControlBottomT or 0.5),
+            NumberSequenceKeypoint.new(0, th.ControlTopT or 0),
+            NumberSequenceKeypoint.new(1, th.ControlBottomT or 0.04),
         })
     end)
     themeMgr:Register(stroke, function(st, th)
-        local g = st:FindFirstChildOfClass("UIGradient")
-        if g then
-            g.Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, th.BorderGlow),
-                ColorSequenceKeypoint.new(0.5, th.Border),
-                ColorSequenceKeypoint.new(1, th.Border),
-            })
-        end
+        st.Color = th.Border
+        st.Transparency = 0.22
     end)
     return grad, stroke
 end
@@ -270,28 +265,27 @@ end
 function Util.ChipSheen(frame, themeMgr)
     local t = themeMgr:Get()
     local grad = Util.Create("UIGradient", {
-        Color = ColorSequence.new(Color3.fromRGB(255,255,255), Color3.fromRGB(255,255,255)),
+        Color = ColorSequence.new(t.SecondaryLight, t.Secondary),
         Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0.55),
-            NumberSequenceKeypoint.new(0.5, 1),
-            NumberSequenceKeypoint.new(1, 0.85),
+            NumberSequenceKeypoint.new(0, 0.08),
+            NumberSequenceKeypoint.new(1, 0.12),
         }),
         Rotation = 90, Parent = frame,
     })
     local stroke = Util.GlassStroke(frame, t.Border, t.BorderGlow, 1)
+    themeMgr:Register(grad, function(g, th)
+        g.Color = ColorSequence.new(th.SecondaryLight, th.Secondary)
+        g.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, th.ControlTopT or 0.02),
+            NumberSequenceKeypoint.new(1, th.ControlBottomT or 0.06),
+        })
+    end)
     themeMgr:Register(stroke, function(st, th)
-        local g = st:FindFirstChildOfClass("UIGradient")
-        if g then
-            g.Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, th.BorderGlow),
-                ColorSequenceKeypoint.new(0.5, th.Border),
-                ColorSequenceKeypoint.new(1, th.Border),
-            })
-        end
+        st.Color = th.Border
+        st.Transparency = 0.22
     end)
     return grad, stroke
 end
-
 function Util.Tween(inst, props, duration, style, direction)
     local info = TweenInfo.new(
         duration or CONFIG.AnimationDuration,
@@ -632,6 +626,36 @@ function OverlayManager:CloseAll()
     end
 end
 
+function OverlayManager:IsPointInsideActive(point)
+    local owner = self._activeOwner
+    if not owner then return false end
+
+    if type(owner._isPointInsideOverlay) == "function" then
+        local ok, inside = pcall(function()
+            return owner:_isPointInsideOverlay(point)
+        end)
+        if ok and inside then return true end
+    end
+
+    if owner.Instance and Util.PointInGui(point, owner.Instance) then
+        return true
+    end
+
+    return false
+end
+
+function OverlayManager:HandleOutsideInput(input)
+    if not self._active then return end
+    if input.UserInputType ~= Enum.UserInputType.MouseButton1
+    and input.UserInputType ~= Enum.UserInputType.Touch then
+        return
+    end
+    local point = input.Position
+    if not self:IsPointInsideActive(point) then
+        self:CloseAll()
+    end
+end
+
 function OverlayManager:Destroy()
     self:CloseAll()
     if self.Container then self.Container:Destroy() end
@@ -713,9 +737,14 @@ function Toggle.new(section, text, onFn, offFn, default)
         Parent = row,
     })
     Util.Corner(13, track)
+    local trackStroke = Util.Stroke(track, theme.Border, 1, 0.25)
 
     self._theme:Register(track, function(tr, t)
         tr.BackgroundColor3 = self._value and t.Accent or t.ToggleOff
+    end)
+    self._theme:Register(trackStroke, function(st, t)
+        st.Color = self._value and t.Accent or t.Border
+        st.Transparency = self._value and 0.55 or 0.25
     end)
 
     local thumb = Util.Create("Frame", {
@@ -733,7 +762,7 @@ function Toggle.new(section, text, onFn, offFn, default)
     local btn = Util.Create("TextButton", {
         BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Text = "", Parent = track,
     })
-    self._track, self._thumb = track, thumb
+    self._track, self._thumb, self._trackStroke = track, thumb, trackStroke
 
     self._cleaner:Add(btn.MouseButton1Click:Connect(function() self:Set(not self._value) end))
     self._cleaner:Add(btn.MouseEnter:Connect(function()
@@ -751,12 +780,19 @@ function Toggle:_render(animate)
     local theme = self._theme:Get()
     local trackColor = self._value and theme.Accent or theme.ToggleOff
     local thumbPos   = self._value and UDim2.new(1, -13, 0.5, 0) or UDim2.new(0, 13, 0.5, 0)
+    local strokeColor = self._value and theme.Accent or theme.Border
+    local strokeTransparency = self._value and 0.55 or 0.25
     if animate then
         Util.Tween(self._track, { BackgroundColor3 = trackColor })
         Util.Tween(self._thumb, { Position = thumbPos })
+        if self._trackStroke then Util.Tween(self._trackStroke, { Color = strokeColor, Transparency = strokeTransparency }) end
     else
         self._track.BackgroundColor3 = trackColor
         self._thumb.Position = thumbPos
+        if self._trackStroke then
+            self._trackStroke.Color = strokeColor
+            self._trackStroke.Transparency = strokeTransparency
+        end
     end
 end
 
@@ -808,7 +844,7 @@ function Button.new(section, text, callback)
 
     self._cleaner:Add(btn.MouseEnter:Connect(function()
         local t = self._theme:Get()
-        Util.Tween(btn, { BackgroundColor3 = t.Accent, BackgroundTransparency = 0, TextColor3 = t.AccentText }, 0.15)
+        Util.Tween(btn, { BackgroundColor3 = t.ControlHover or t.SecondaryLight, BackgroundTransparency = 0, TextColor3 = t.Text }, 0.15)
     end))
     self._cleaner:Add(btn.MouseLeave:Connect(function()
         local t = self._theme:Get()
@@ -816,10 +852,12 @@ function Button.new(section, text, callback)
     end))
     self._cleaner:Add(btn.MouseButton1Down:Connect(function(x, y)
         self:_ripple(rippleHolder, x, y)
-        Util.Tween(btn, { Size = UDim2.new(1, -4, 1, -4) }, 0.08)
+        local t = self._theme:Get()
+        Util.Tween(btn, { Size = UDim2.new(1, -4, 1, -4), BackgroundColor3 = t.ControlPressed or t.ControlHover or t.SecondaryLight }, 0.08)
     end))
     self._cleaner:Add(btn.MouseButton1Up:Connect(function()
-        Util.Tween(btn, { Size = UDim2.new(1, 0, 1, 0) }, 0.12)
+        local t = self._theme:Get()
+        Util.Tween(btn, { Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = t.ControlHover or t.SecondaryLight }, 0.12)
     end))
     self._cleaner:Add(btn.MouseButton1Click:Connect(function()
         if callback then task.spawn(callback) end
@@ -907,6 +945,21 @@ function Dropdown.new(section, text, options, callback, default)
     self._arrow.ZIndex = Z.Trigger
     self._theme:Register(self._arrow, function(a, t) a.ImageColor3 = t.Text end)
 
+    self._cleaner:Add(trigger.MouseEnter:Connect(function()
+        local t = self._theme:Get()
+        Util.Tween(trigger, { BackgroundColor3 = t.ControlHover or t.SecondaryLight, BackgroundTransparency = 0 }, 0.14)
+    end))
+    self._cleaner:Add(trigger.MouseLeave:Connect(function()
+        local t = self._theme:Get()
+        Util.Tween(trigger, { BackgroundColor3 = t.SecondaryLight, BackgroundTransparency = t.ControlT }, 0.14)
+    end))
+    self._cleaner:Add(trigger.MouseButton1Down:Connect(function()
+        local t = self._theme:Get()
+        Util.Tween(trigger, { Size = UDim2.new(0.46, -2, 0, 36), BackgroundColor3 = t.ControlPressed or t.ControlHover or t.SecondaryLight }, 0.08)
+    end))
+    self._cleaner:Add(trigger.MouseButton1Up:Connect(function()
+        Util.Tween(trigger, { Size = UDim2.new(0.46, 0, 0, 38) }, 0.12)
+    end))
     self._cleaner:Add(trigger.MouseButton1Click:Connect(function() self:_toggleOpen() end))
 
     self._cleaner:Add(trigger:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
@@ -922,7 +975,7 @@ function Dropdown:_buildMenu()
     local menu = Util.Create("Frame", {
         Name = "DropdownMenu",
         BackgroundColor3 = theme.Primary,
-        BackgroundTransparency = 0.08,
+        BackgroundTransparency = 0,
         BorderSizePixel = 0,
         Size = UDim2.new(0, self._trigger.AbsoluteSize.X, 0, 0),
         ClipsDescendants = true,
@@ -930,7 +983,15 @@ function Dropdown:_buildMenu()
         Parent = self._overlay.Container,
     })
     Util.Corner(Spacing[3], menu)
-    Util.Stroke(menu, theme.Border, 1, 0.25)
+    local menuStroke = Util.Stroke(menu, theme.Border, 1, 0.12)
+    self._theme:Register(menu, function(m, t)
+        m.BackgroundColor3 = t.Primary
+        m.BackgroundTransparency = 0
+    end)
+    self._theme:Register(menuStroke, function(st, t)
+        st.Color = t.Border
+        st.Transparency = 0.12
+    end)
 
     local scroll = Util.Create("ScrollingFrame", {
         BackgroundTransparency = 1,
@@ -950,21 +1011,35 @@ function Dropdown:_buildMenu()
         local optBtn = Util.Create("TextButton", {
             Size = UDim2.new(1, 0, 0, 30),
             BackgroundColor3 = isSel and theme.Accent or theme.SecondaryLight,
-            BackgroundTransparency = isSel and 0 or 0.55,
+            BackgroundTransparency = isSel and 0 or 0,
             AutoButtonColor = false, BorderSizePixel = 0,
             Font = CONFIG.Font, Text = tostring(opt), TextSize = 16,
             TextColor3 = isSel and theme.AccentText or theme.Text, LayoutOrder = i,
             ZIndex = Z.Overlay + 3, Parent = scroll,
         })
         Util.Corner(Spacing[2], optBtn)
+        self._theme:Register(optBtn, function(b, t)
+            local selectedNow = (opt == self._value)
+            b.BackgroundColor3 = selectedNow and t.Accent or t.SecondaryLight
+            b.BackgroundTransparency = 0
+            b.TextColor3 = selectedNow and t.AccentText or t.Text
+        end)
         optBtn.MouseEnter:Connect(function()
-            if opt ~= self._value then Util.Tween(optBtn, { BackgroundTransparency = 0.2 }, 0.1) end
+            if opt ~= self._value then
+                local t = self._theme:Get()
+                Util.Tween(optBtn, { BackgroundColor3 = t.ControlHover or t.SecondaryLight, BackgroundTransparency = 0 }, 0.1)
+            end
         end)
         optBtn.MouseLeave:Connect(function()
-            if opt ~= self._value then Util.Tween(optBtn, { BackgroundTransparency = 0.55 }, 0.1) end
+            if opt ~= self._value then
+                local t = self._theme:Get()
+                Util.Tween(optBtn, { BackgroundColor3 = t.SecondaryLight, BackgroundTransparency = 0 }, 0.1)
+            end
         end)
         optBtn.MouseButton1Click:Connect(function()
+            self._closingFromOption = true
             self:Set(opt)
+            self._closingFromOption = false
             self:_toggleOpen(false)
         end)
     end
@@ -978,6 +1053,11 @@ function Dropdown:_positionMenu()
     local size = self._trigger.AbsoluteSize
     self._menu.Position = UDim2.new(0, pos.X, 0, pos.Y + size.Y + Spacing[1])
     self._menu.Size = UDim2.new(0, size.X, 0, self._menu.Size.Y.Offset)
+end
+
+function Dropdown:_isPointInsideOverlay(point)
+    return Util.PointInGui(point, self._trigger)
+        or Util.PointInGui(point, self._menu)
 end
 
 function Dropdown:_toggleOpen(force)
@@ -1009,7 +1089,7 @@ end
 function Dropdown:Set(value)
     self._value = value
     self._selectedLabel.Text = tostring(value)
-    if self._open then self:_buildMenu(); self:_positionMenu() end
+    if self._open and not self._closingFromOption then self:_buildMenu(); self:_positionMenu() end
     if self._callback then task.spawn(self._callback, value) end
     self.Changed:Fire(value)
 end
@@ -1174,11 +1254,24 @@ function Textbox.new(section, text, placeholder, callback)
     self._input = input
     self._theme:Register(input, function(b, t) b.TextColor3 = t.Text; b.PlaceholderColor3 = t.TextMuted end)
 
+    self._cleaner:Add(boxFrame.MouseEnter:Connect(function()
+        local t = self._theme:Get()
+        Util.Tween(boxFrame, { BackgroundColor3 = t.ControlHover or t.SecondaryLight, BackgroundTransparency = 0 }, 0.14)
+    end))
+    self._cleaner:Add(boxFrame.MouseLeave:Connect(function()
+        local t = self._theme:Get()
+        if not input:IsFocused() then
+            Util.Tween(boxFrame, { BackgroundColor3 = t.SecondaryLight, BackgroundTransparency = t.ControlT }, 0.14)
+        end
+    end))
+
     self._cleaner:Add(input.Focused:Connect(function()
         Util.Tween(focusRing, { Transparency = 0 }, 0.15)
     end))
     self._cleaner:Add(input.FocusLost:Connect(function()
         Util.Tween(focusRing, { Transparency = 1 }, 0.15)
+        local t = self._theme:Get()
+        Util.Tween(boxFrame, { BackgroundColor3 = t.SecondaryLight, BackgroundTransparency = t.ControlT }, 0.14)
         self._value = input.Text
         if self._callback then task.spawn(self._callback, input.Text) end
         self.Changed:Fire(input.Text)
@@ -1235,12 +1328,16 @@ function Paragraph.new(section, title, body)
         BorderSizePixel = 0, Parent = row,
     })
     Util.Corner(Spacing[3], container)
-    Util.Stroke(container, theme.Border, 1, 0.45)
+    local paraStroke = Util.Stroke(container, theme.Border, 1, 0.22)
     Util.Padding(container, Spacing[3])
     LayoutManager.VerticalList(container, Spacing[1] + 2, Enum.HorizontalAlignment.Left)
     self._theme:Register(container, function(c, t)
         c.BackgroundColor3 = t.SecondaryLight
         c.BackgroundTransparency = t.ControlT
+    end)
+    self._theme:Register(paraStroke, function(st, t)
+        st.Color = t.Border
+        st.Transparency = 0.22
     end)
 
     local titleLabel = Util.Create("TextLabel", {
@@ -1302,6 +1399,25 @@ function Keybind.new(section, text, defaultKey, callback)
         b.BackgroundColor3 = t.SecondaryLight; b.TextColor3 = t.Text
         b.BackgroundTransparency = t.ControlT
     end)
+
+    self._cleaner:Add(keyBtn.MouseEnter:Connect(function()
+        if self._listening then return end
+        local t = self._theme:Get()
+        Util.Tween(keyBtn, { BackgroundColor3 = t.ControlHover or t.SecondaryLight, BackgroundTransparency = 0 }, 0.14)
+    end))
+    self._cleaner:Add(keyBtn.MouseLeave:Connect(function()
+        if self._listening then return end
+        local t = self._theme:Get()
+        Util.Tween(keyBtn, { BackgroundColor3 = t.SecondaryLight, BackgroundTransparency = t.ControlT }, 0.14)
+    end))
+    self._cleaner:Add(keyBtn.MouseButton1Down:Connect(function()
+        if self._listening then return end
+        local t = self._theme:Get()
+        Util.Tween(keyBtn, { Size = UDim2.new(0, 106, 0, 32), BackgroundColor3 = t.ControlPressed or t.ControlHover or t.SecondaryLight }, 0.08)
+    end))
+    self._cleaner:Add(keyBtn.MouseButton1Up:Connect(function()
+        Util.Tween(keyBtn, { Size = UDim2.new(0, 110, 0, 34) }, 0.12)
+    end))
 
     self._cleaner:Add(keyBtn.MouseButton1Click:Connect(function()
         self._listening = true
@@ -1468,11 +1584,9 @@ function Tab.new(window, name, iconName)
     Util.Corner(Spacing[3], button)
     self._button = button
 
-    local tabGrad = Util.Gradient(button, theme.AccentTop, theme.AccentBottom, 90)
-    self._tabGrad = tabGrad
-    self._theme:Register(button, function(b, t) b.BackgroundColor3 = t.Accent end)
-    self._theme:Register(tabGrad, function(g, t)
-        g.Color = ColorSequence.new(t.AccentTop, t.AccentBottom)
+    self._theme:Register(button, function(b, t)
+        b.BackgroundColor3 = self._active and t.Accent or (t.SecondaryLight or t.Secondary)
+        b.BackgroundTransparency = self._active and 0 or 1
     end)
 
     local iconHolder = Util.Create("Frame", {
@@ -1512,7 +1626,11 @@ function Tab.new(window, name, iconName)
 
     self._cleaner:Add(button.MouseButton1Click:Connect(function() window:_selectTab(self) end))
     self._cleaner:Add(button.MouseEnter:Connect(function()
-        if not self._active then Util.Tween(button, { BackgroundTransparency = 0.88 }, 0.12) end
+        if not self._active then
+            local t = self._theme:Get()
+            button.BackgroundColor3 = t.ControlHover or t.SecondaryLight
+            Util.Tween(button, { BackgroundTransparency = 0.08 }, 0.12)
+        end
     end))
     self._cleaner:Add(button.MouseLeave:Connect(function()
         if not self._active then Util.Tween(button, { BackgroundTransparency = 1 }, 0.12) end
@@ -1530,12 +1648,14 @@ function Tab:_setActive(active)
     self.Content.Visible = active
     local t = self._theme:Get()
     if active then
+        self._button.BackgroundColor3 = t.Accent
         Util.Tween(self._button, { BackgroundTransparency = 0 }, 0.18)
         Util.Tween(self._label, { TextColor3 = t.AccentText }, 0.18)
         if self._iconImage then
             Util.Tween(self._iconImage, { ImageColor3 = t.AccentText }, 0.18)
         end
     else
+        self._button.BackgroundColor3 = t.SecondaryLight or t.Secondary
         Util.Tween(self._button, { BackgroundTransparency = 1 }, 0.18)
         Util.Tween(self._label, { TextColor3 = t.Text }, 0.18)
         if self._iconImage then
@@ -1745,14 +1865,8 @@ function Window.new(library, opts)
         })
     end)
     self._theme:Register(sidebarStroke, function(st, t)
-        local grad = st:FindFirstChildOfClass("UIGradient")
-        if grad then
-            grad.Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, t.BorderGlow),
-                ColorSequenceKeypoint.new(0.5, t.Border),
-                ColorSequenceKeypoint.new(1, t.Border),
-            })
-        end
+        st.Color = t.Border
+        st.Transparency = 0.22
     end)
 
     local tabList = Util.Create("Frame", {
@@ -1785,14 +1899,8 @@ function Window.new(library, opts)
         })
     end)
     self._theme:Register(contentStroke, function(st, t)
-        local grad = st:FindFirstChildOfClass("UIGradient")
-        if grad then
-            grad.Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, t.BorderGlow),
-                ColorSequenceKeypoint.new(0.5, t.Border),
-                ColorSequenceKeypoint.new(1, t.Border),
-            })
-        end
+        st.Color = t.Border
+        st.Transparency = 0.22
     end)
 
     local contentContainer = Util.Create("Frame", {
@@ -1807,12 +1915,7 @@ function Window.new(library, opts)
     self:_setupViewportScaling()
 
     self._cleaner:Add(UserInputService.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-            task.defer(function()
-                self._overlay:CloseAll()
-            end)
-        end
+        self._overlay:HandleOutsideInput(input)
     end))
 
     self:_playOpen()
@@ -1825,11 +1928,6 @@ function Window:_playOpen()
     local baseT = self:_panelTransparency()
     main.BackgroundTransparency = 1
     if self.Backdrop then self.Backdrop.BackgroundTransparency = 1 end
-    for _, d in ipairs(main:GetDescendants()) do
-        if d:IsA("GuiObject") then
-            d.BackgroundTransparency = math.min(1, d.BackgroundTransparency + 0.6)
-        end
-    end
     task.wait()
     Util.Tween(openScale, { Scale = 1 }, 0.34, Enum.EasingStyle.Quint)
     Util.Tween(main, { BackgroundTransparency = baseT }, 0.3)
