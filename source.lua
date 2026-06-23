@@ -1682,6 +1682,8 @@ local Window = {}
 Window.__index = Window
 
 local MIN_W, MIN_H = 540, 360
+local BACKDROP_GAP = 56
+local BACKDROP_DRAG_EXTRA = 30
 
 function Window.new(library, opts)
     local self = setmetatable({}, Window)
@@ -1713,7 +1715,7 @@ function Window.new(library, opts)
 
     local backdrop = Util.Create("Frame", {
         Name = "Backdrop", AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.new(0.5, 0, 0.5, 0), Size = UDim2.new(0, 760, 0, 510),
+        Position = UDim2.new(0.5, 0, 0.5, 0), Size = UDim2.new(0, 720 + BACKDROP_GAP, 0, 470 + BACKDROP_GAP),
         BackgroundColor3 = theme.BackdropTop, BackgroundTransparency = theme.BackdropT,
         BorderSizePixel = 0, ZIndex = Z.Window, Parent = gui,
     })
@@ -1764,8 +1766,8 @@ function Window.new(library, opts)
         backdrop.Position = main.Position
     end))
     self._cleaner:Add(main:GetPropertyChangedSignal("Size"):Connect(function()
-        backdrop.Size = UDim2.new(main.Size.X.Scale, main.Size.X.Offset + 40,
-                                   main.Size.Y.Scale, main.Size.Y.Offset + 40)
+        backdrop.Size = UDim2.new(main.Size.X.Scale, main.Size.X.Offset + BACKDROP_GAP,
+                                   main.Size.Y.Scale, main.Size.Y.Offset + BACKDROP_GAP)
     end))
 
     local header = Util.Create("Frame", {
@@ -1952,58 +1954,119 @@ function Window:_panelTransparency()
 end
 
 function Window:_setupDragging(handle, target)
-    local dragging, dragStart, startPos = false, nil, nil
-    local targetPos = target.Position
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+    local activeInput = nil
     local renderConn = nil
-    local SMOOTH = 0.35
+    local inputEndedConn = nil
+    local SMOOTH = 0.45
 
     local function stopRender()
-        if renderConn then renderConn:Disconnect() renderConn = nil end
+        if renderConn then
+            renderConn:Disconnect()
+            renderConn = nil
+        end
+    end
+
+    local function disconnectInputEnd()
+        if inputEndedConn then
+            inputEndedConn:Disconnect()
+            inputEndedConn = nil
+        end
+    end
+
+    local function pointerPosition()
+        if activeInput and activeInput.UserInputType == Enum.UserInputType.Touch then
+            return Vector2.new(activeInput.Position.X, activeInput.Position.Y)
+        end
+        return UserInputService:GetMouseLocation()
+    end
+
+    local function desiredPosition()
+        if not dragStart or not startPos then return target.Position end
+        local current = pointerPosition()
+        local delta = current - dragStart
+        return UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+
+    local function finishDrag()
+        if not dragging then return end
+        dragging = false
+        local finalPos = desiredPosition()
+        activeInput = nil
+        disconnectInputEnd()
+        stopRender()
+
+        Util.Tween(target, {
+            Position = finalPos,
+            BackgroundTransparency = self:_panelTransparency(),
+        }, 0.18, Enum.EasingStyle.Quint)
+
+        if self.Backdrop then
+            Util.Tween(self.Backdrop, {
+                Size = UDim2.new(0, target.AbsoluteSize.X + BACKDROP_GAP, 0, target.AbsoluteSize.Y + BACKDROP_GAP),
+            }, 0.2, Enum.EasingStyle.Quint)
+        end
     end
 
     self._cleaner:Add(handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = target.Position
-            targetPos = target.Position
-            Util.Tween(target, { BackgroundTransparency = self:_panelTransparency() * 0.6 }, 0.2)
-            if self.Backdrop then
-                Util.Tween(self.Backdrop, { Size = UDim2.new(0, target.AbsoluteSize.X + 70, 0, target.AbsoluteSize.Y + 70) }, 0.25)
-            end
-            stopRender()
-            renderConn = RunService.RenderStepped:Connect(function()
-                local cur = target.Position
-                local nx = cur.X.Offset + (targetPos.X.Offset - cur.X.Offset) * SMOOTH
-                local ny = cur.Y.Offset + (targetPos.Y.Offset - cur.Y.Offset) * SMOOTH
-                target.Position = UDim2.new(targetPos.X.Scale, nx, targetPos.Y.Scale, ny)
-            end)
+        if input.UserInputType ~= Enum.UserInputType.MouseButton1
+        and input.UserInputType ~= Enum.UserInputType.Touch then
+            return
         end
+
+        dragging = true
+        activeInput = input
+        dragStart = pointerPosition()
+        startPos = target.Position
+
+        Util.Tween(target, { BackgroundTransparency = self:_panelTransparency() * 0.6 }, 0.12)
+        if self.Backdrop then
+            Util.Tween(self.Backdrop, {
+                Size = UDim2.new(0, target.AbsoluteSize.X + BACKDROP_GAP + BACKDROP_DRAG_EXTRA, 0, target.AbsoluteSize.Y + BACKDROP_GAP + BACKDROP_DRAG_EXTRA),
+            }, 0.16, Enum.EasingStyle.Quint)
+        end
+
+        disconnectInputEnd()
+        inputEndedConn = input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                finishDrag()
+            end
+        end)
+
+        stopRender()
+        renderConn = RunService.RenderStepped:Connect(function()
+            if not dragging then return end
+            local wanted = desiredPosition()
+            local current = target.Position
+            local nx = current.X.Offset + (wanted.X.Offset - current.X.Offset) * SMOOTH
+            local ny = current.Y.Offset + (wanted.Y.Offset - current.Y.Offset) * SMOOTH
+            target.Position = UDim2.new(wanted.X.Scale, nx, wanted.Y.Scale, ny)
+        end)
     end))
 
     self._cleaner:Add(UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            targetPos = UDim2.new(
-                startPos.X.Scale, startPos.X.Offset + delta.X,
-                startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        if dragging and input == activeInput then
+            activeInput = input
         end
     end))
 
     self._cleaner:Add(UserInputService.InputEnded:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseButton1
+        if dragging and (input == activeInput
+        or input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch) then
-            dragging = false
-            Util.Tween(target, { Position = targetPos, BackgroundTransparency = self:_panelTransparency() }, 0.3, Enum.EasingStyle.Quint)
-            if self.Backdrop then
-                Util.Tween(self.Backdrop, { Size = UDim2.new(0, target.AbsoluteSize.X + 40, 0, target.AbsoluteSize.Y + 40) }, 0.35)
-            end
-            task.delay(0.32, stopRender)
+            finishDrag()
         end
     end))
-    self._cleaner:Add(stopRender)
+
+    self._cleaner:Add(function()
+        disconnectInputEnd()
+        stopRender()
+    end)
 end
 
 function Window:_setupResize(main)
