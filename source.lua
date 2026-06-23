@@ -1682,8 +1682,9 @@ local Window = {}
 Window.__index = Window
 
 local MIN_W, MIN_H = 540, 360
-local BACKDROP_GAP = 64
-local BACKDROP_DRAG_EXTRA = 30
+local ACCENT_CORNER_GAP = 8
+local ACCENT_CORNER_LEN = 42
+local ACCENT_CORNER_THICKNESS = 5
 
 function Window.new(library, opts)
     local self = setmetatable({}, Window)
@@ -1715,32 +1716,50 @@ function Window.new(library, opts)
 
     local backdrop = Util.Create("Frame", {
         Name = "Backdrop", AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.new(0.5, 0, 0.5, 0), Size = UDim2.new(0, 720 + BACKDROP_GAP, 0, 470 + BACKDROP_GAP),
-        BackgroundColor3 = theme.BackdropTop, BackgroundTransparency = theme.BackdropT,
+        Position = UDim2.new(0.5, 0, 0.5, 0), Size = UDim2.new(0, 720, 0, 470),
+        BackgroundTransparency = 1,
         BorderSizePixel = 0, ZIndex = Z.Window, Parent = gui,
     })
-    Util.Corner(Spacing[4] + 4, backdrop)
-
-    local backdropGrad = Util.Create("UIGradient", {
-        Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, theme.BackdropTop),
-            ColorSequenceKeypoint.new(0.55, theme.BackdropBottom),
-            ColorSequenceKeypoint.new(1, theme.BackdropTop),
-        }),
-        Rotation = 135, Parent = backdrop,
-    })
     self.Backdrop = backdrop
-    self._theme:Register(backdrop, function(b, t)
-        b.BackgroundColor3 = t.BackdropTop
-        b.BackgroundTransparency = t.BackdropT
-    end)
-    self._theme:Register(backdropGrad, function(g, t)
-        g.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, t.BackdropTop),
-            ColorSequenceKeypoint.new(0.55, t.BackdropBottom),
-            ColorSequenceKeypoint.new(1, t.BackdropTop),
+    self._cornerAccents = {}
+
+    local function makeCornerAccent(name, pos, size, anchor)
+        local accent = Util.Create("Frame", {
+            Name = name,
+            AnchorPoint = anchor or Vector2.new(0, 0),
+            Position = pos,
+            Size = size,
+            BackgroundColor3 = theme.Accent,
+            BackgroundTransparency = 0,
+            BorderSizePixel = 0,
+            ZIndex = Z.Window,
+            Parent = backdrop,
         })
-    end)
+        Util.Corner(ACCENT_CORNER_THICKNESS, accent)
+        self._cornerAccents[#self._cornerAccents + 1] = accent
+        self._theme:Register(accent, function(a, t)
+            a.BackgroundColor3 = t.Accent
+            a.BackgroundTransparency = 0
+        end)
+        return accent
+    end
+
+    local gap = ACCENT_CORNER_GAP
+    local len = ACCENT_CORNER_LEN
+    local thick = ACCENT_CORNER_THICKNESS
+
+    -- Corner-only accents. This intentionally replaces the old full green backdrop frame.
+    makeCornerAccent("Accent_TL_H", UDim2.new(0, gap, 0, -gap - thick), UDim2.new(0, len, 0, thick))
+    makeCornerAccent("Accent_TL_V", UDim2.new(0, -gap - thick, 0, gap), UDim2.new(0, thick, 0, len))
+
+    makeCornerAccent("Accent_TR_H", UDim2.new(1, -gap, 0, -gap - thick), UDim2.new(0, len, 0, thick), Vector2.new(1, 0))
+    makeCornerAccent("Accent_TR_V", UDim2.new(1, gap, 0, gap), UDim2.new(0, thick, 0, len))
+
+    makeCornerAccent("Accent_BL_H", UDim2.new(0, gap, 1, gap), UDim2.new(0, len, 0, thick))
+    makeCornerAccent("Accent_BL_V", UDim2.new(0, -gap - thick, 1, -gap), UDim2.new(0, thick, 0, len), Vector2.new(0, 1))
+
+    makeCornerAccent("Accent_BR_H", UDim2.new(1, -gap, 1, gap), UDim2.new(0, len, 0, thick), Vector2.new(1, 0))
+    makeCornerAccent("Accent_BR_V", UDim2.new(1, gap, 1, -gap), UDim2.new(0, thick, 0, len), Vector2.new(0, 1))
 
     local main = Util.Create("Frame", {
         Name = "MainWindow", AnchorPoint = Vector2.new(0.5, 0.5),
@@ -1766,8 +1785,7 @@ function Window.new(library, opts)
         backdrop.Position = main.Position
     end))
     self._cleaner:Add(main:GetPropertyChangedSignal("Size"):Connect(function()
-        backdrop.Size = UDim2.new(main.Size.X.Scale, main.Size.X.Offset + BACKDROP_GAP,
-                                   main.Size.Y.Scale, main.Size.Y.Offset + BACKDROP_GAP)
+        backdrop.Size = main.Size
     end))
 
     local header = Util.Create("Frame", {
@@ -1796,7 +1814,7 @@ function Window.new(library, opts)
     local titleLabel = Util.Create("TextLabel", {
         BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.X,
         Size = UDim2.new(0, 0, 1, 0), Font = CONFIG.FontBold,
-        Text = opts.Title or "Nature", TextSize = 24, TextColor3 = theme.Text,
+        Text = "Nature", TextSize = 24, TextColor3 = theme.Text,
         TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 1, Parent = titleHolder,
     })
     self._titleLabel = titleLabel
@@ -1805,7 +1823,7 @@ function Window.new(library, opts)
     local subtitleLabel = Util.Create("TextLabel", {
         BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.X,
         Size = UDim2.new(0, 0, 1, 0), Font = CONFIG.FontRegular,
-        Text = opts.Subtitle or "Basic", TextSize = 24, TextColor3 = theme.TextDim,
+        Text = "Premium", TextSize = 24, TextColor3 = theme.TextDim,
         TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 2, Parent = titleHolder,
     })
     self._subtitleLabel = subtitleLabel
@@ -1930,11 +1948,18 @@ function Window:_playOpen()
     local baseT = self:_panelTransparency()
     main.BackgroundTransparency = 1
     if self.Backdrop then self.Backdrop.BackgroundTransparency = 1 end
+    if self._cornerAccents then
+        for _, accent in ipairs(self._cornerAccents) do
+            accent.BackgroundTransparency = 1
+        end
+    end
     task.wait()
     Util.Tween(openScale, { Scale = 1 }, 0.34, Enum.EasingStyle.Quint)
     Util.Tween(main, { BackgroundTransparency = baseT }, 0.3)
-    if self.Backdrop then
-        Util.Tween(self.Backdrop, { BackgroundTransparency = self._theme:Get().BackdropT }, 0.34)
+    if self._cornerAccents then
+        for _, accent in ipairs(self._cornerAccents) do
+            Util.Tween(accent, { BackgroundTransparency = 0 }, 0.24, Enum.EasingStyle.Quint)
+        end
     end
     task.delay(0.04, function()
         self._theme:_reapply()
@@ -2008,7 +2033,7 @@ function Window:_setupDragging(handle, target)
 
         if self.Backdrop then
             Util.Tween(self.Backdrop, {
-                Size = UDim2.new(0, target.AbsoluteSize.X + BACKDROP_GAP, 0, target.AbsoluteSize.Y + BACKDROP_GAP),
+                Size = UDim2.new(0, target.AbsoluteSize.X, 0, target.AbsoluteSize.Y),
             }, 0.2, Enum.EasingStyle.Quint)
         end
     end
@@ -2027,7 +2052,7 @@ function Window:_setupDragging(handle, target)
         Util.Tween(target, { BackgroundTransparency = self:_panelTransparency() * 0.6 }, 0.12)
         if self.Backdrop then
             Util.Tween(self.Backdrop, {
-                Size = UDim2.new(0, target.AbsoluteSize.X + BACKDROP_GAP + BACKDROP_DRAG_EXTRA, 0, target.AbsoluteSize.Y + BACKDROP_GAP + BACKDROP_DRAG_EXTRA),
+                Size = UDim2.new(0, target.AbsoluteSize.X, 0, target.AbsoluteSize.Y),
             }, 0.16, Enum.EasingStyle.Quint)
         end
 
@@ -2125,8 +2150,8 @@ function Window:AddTab(name, iconName)
     return tab
 end
 
-function Window:SetTitle(text) self._titleLabel.Text = text end
-function Window:SetSubtitle(text) self._subtitleLabel.Text = text end
+function Window:SetTitle(_) if self._titleLabel then self._titleLabel.Text = "Nature" end end
+function Window:SetSubtitle(_) if self._subtitleLabel then self._subtitleLabel.Text = "Premium" end end
 
 function Window:ToggleMinimize()
     self._overlay:CloseAll()
@@ -2154,6 +2179,11 @@ function Window:Close()
     Util.Tween(closeScale, { Scale = 0.92 }, 0.26, Enum.EasingStyle.Quint)
     Util.Tween(main, { BackgroundTransparency = 1 }, 0.24)
     if self.Backdrop then Util.Tween(self.Backdrop, { BackgroundTransparency = 1 }, 0.24) end
+    if self._cornerAccents then
+        for _, accent in ipairs(self._cornerAccents) do
+            Util.Tween(accent, { BackgroundTransparency = 1 }, 0.2, Enum.EasingStyle.Quint)
+        end
+    end
     for _, d in ipairs(main:GetDescendants()) do
         if d:IsA("GuiObject") then
             pcall(function() Util.Tween(d, { BackgroundTransparency = 1, TextTransparency = 1, ImageTransparency = 1 }, 0.22) end)
@@ -2182,7 +2212,7 @@ end
 function Library:CreateWindow(opts)
     local window = Window.new(self, opts)
     table.insert(self._windows, window)
-    Logger.Init("Window created:", (opts and opts.Title) or "Nature")
+    Logger.Init("Window created:", "Nature Premium")
     return window
 end
 
