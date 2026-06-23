@@ -731,7 +731,7 @@ function Toggle.new(section, text, onFn, offFn, default)
     local track = Util.Create("Frame", {
         Name = "Track",
         AnchorPoint = Vector2.new(1, 0.5),
-        Position = UDim2.new(1, 0, 0.5, 0),
+        Position = UDim2.new(1, -4, 0.5, 0),
         Size = UDim2.new(0, 52, 0, 26),
         BackgroundColor3 = self._value and theme.Accent or theme.ToggleOff,
         BorderSizePixel = 0,
@@ -899,7 +899,7 @@ function Dropdown.new(section, text, options, callback, default)
     local row = self:_makeRow(40)
     self.Instance = row
     self._baseHeight = 40
-    self._menuGap = Spacing[2]
+    self._menuGap = 12
 
     local label = Util.Create("TextLabel", {
         BackgroundTransparency = 1,
@@ -913,8 +913,8 @@ function Dropdown.new(section, text, options, callback, default)
     local trigger = Util.Create("TextButton", {
         Name = "Trigger",
         AnchorPoint = Vector2.new(1, 0.5),
-        Position = UDim2.new(1, 0, 0.5, 0),
-        Size = UDim2.new(0.46, 0, 0, 38),
+        Position = UDim2.new(1, -4, 0.5, 0),
+        Size = UDim2.new(0.46, -2, 0, 38),
         BackgroundColor3 = theme.SecondaryLight,
         BackgroundTransparency = theme.ControlT,
         AutoButtonColor = false, BorderSizePixel = 0,
@@ -961,14 +961,17 @@ function Dropdown.new(section, text, options, callback, default)
     end))
     self._cleaner:Add(trigger.MouseButton1Down:Connect(function()
         local t = self._theme:Get()
-        Util.Tween(trigger, { Size = UDim2.new(0.46, -2, 0, 36), BackgroundColor3 = t.ControlPressed or t.ControlHover or t.SecondaryLight }, 0.08)
+        Util.Tween(trigger, { Size = UDim2.new(0.46, -4, 0, 36), BackgroundColor3 = t.ControlPressed or t.ControlHover or t.SecondaryLight }, 0.08)
     end))
     self._cleaner:Add(trigger.MouseButton1Up:Connect(function()
-        Util.Tween(trigger, { Size = UDim2.new(0.46, 0, 0, 38) }, 0.12)
+        Util.Tween(trigger, { Size = UDim2.new(0.46, -2, 0, 38) }, 0.12)
     end))
     self._cleaner:Add(trigger.MouseButton1Click:Connect(function() self:_toggleOpen() end))
 
     self._cleaner:Add(trigger:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+        if self._open then self:_positionMenu() end
+    end))
+    self._cleaner:Add(trigger:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
         if self._open then self:_positionMenu() end
     end))
     return self
@@ -1073,13 +1076,23 @@ function Dropdown:_targetMenuHeight()
 end
 
 function Dropdown:_positionMenu()
-    if not self._menu then return end
-    local pos = self._trigger.AbsolutePosition
-    local size = self._trigger.AbsoluteSize
-    local gap = self._menuGap or Spacing[2]
+    if not self._menu or not self._trigger then return end
+
+    -- Keep the dropdown as a true overlay, but anchor it strictly below the
+    -- trigger. Roblox AbsolutePosition is screen-space, while the overlay
+    -- container can have its own absolute origin, so subtract that origin.
+    -- This prevents the menu from appearing on top of the trigger.
+    local triggerPos = self._trigger.AbsolutePosition
+    local triggerSize = self._trigger.AbsoluteSize
+    local overlayPos = self._overlay.Container.AbsolutePosition
+    local gap = self._menuGap or 12
+
+    local x = triggerPos.X - overlayPos.X
+    local y = triggerPos.Y - overlayPos.Y + triggerSize.Y + gap
+
     self._menu.AnchorPoint = Vector2.new(0, 0)
-    self._menu.Position = UDim2.new(0, pos.X, 0, pos.Y + size.Y + gap)
-    self._menu.Size = UDim2.new(0, size.X, 0, self._menu.Size.Y.Offset)
+    self._menu.Position = UDim2.new(0, x, 0, y)
+    self._menu.Size = UDim2.new(0, triggerSize.X, 0, self._menu.Size.Y.Offset)
 end
 
 function Dropdown:_isPointInsideOverlay(point)
@@ -1093,6 +1106,11 @@ function Dropdown:_toggleOpen(force)
     if self._open then
         self:_buildMenu()
         self:_positionMenu()
+        task.defer(function()
+            if self._open and self._menu then
+                self:_positionMenu()
+            end
+        end)
         local targetH = self:_targetMenuHeight()
         Util.Tween(self._menu, { Size = UDim2.new(0, self._trigger.AbsoluteSize.X, 0, targetH) }, 0.18)
         Util.Tween(self._arrow, { Rotation = 180 })
@@ -1181,13 +1199,15 @@ function Slider.new(section, text, min, max, default, callback)
 
     local valueLabel = Util.Create("TextBox", {
         AnchorPoint = Vector2.new(1, 0),
-        Position = UDim2.new(1, 0, 0, 0),
+        Position = UDim2.new(1, -4, 0, 0),
         Size = UDim2.new(0, 74, 0, 28),
         BackgroundColor3 = theme.SecondaryLight,
         BackgroundTransparency = theme.ControlT,
         BorderSizePixel = 0,
-        Font = CONFIG.FontBold, Text = tostring(self._value), TextSize = 15,
-        TextColor3 = Color3.fromRGB(0, 0, 0),
+        Font = CONFIG.FontRegular, Text = tostring(self._value), TextSize = 15,
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextStrokeColor3 = Color3.fromRGB(18, 26, 21),
+        TextStrokeTransparency = 0.18,
         PlaceholderColor3 = theme.TextMuted,
         TextXAlignment = Enum.TextXAlignment.Center,
         ClearTextOnFocus = false,
@@ -1199,7 +1219,9 @@ function Slider.new(section, text, min, max, default, callback)
     self._theme:Register(valueLabel, function(b, t)
         b.BackgroundColor3 = t.SecondaryLight
         b.BackgroundTransparency = t.ControlT
-        b.TextColor3 = Color3.fromRGB(0, 0, 0)
+        b.TextColor3 = Color3.fromRGB(255, 255, 255)
+        b.TextStrokeColor3 = Color3.fromRGB(18, 26, 21)
+        b.TextStrokeTransparency = 0.18
         b.PlaceholderColor3 = t.TextMuted
     end)
     self._theme:Register(valueStroke, function(st, t)
@@ -1221,7 +1243,7 @@ function Slider.new(section, text, min, max, default, callback)
 
     local track = Util.Create("Frame", {
         AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, -6),
-        Size = UDim2.new(1, 0, 0, 8), BackgroundColor3 = theme.ToggleOff,
+        Size = UDim2.new(1, -10, 0, 8), BackgroundColor3 = theme.ToggleOff,
         BorderSizePixel = 0, Parent = row,
     })
     Util.Corner(4, track)
@@ -1303,7 +1325,7 @@ function Textbox.new(section, text, placeholder, callback)
     local row = self:_makeRow(40)
     self.Instance = row
     self._baseHeight = 40
-    self._menuGap = Spacing[2]
+    self._menuGap = 12
 
     local label = Util.Create("TextLabel", {
         BackgroundTransparency = 1, Size = UDim2.new(0.5, -Spacing[3], 1, 0),
@@ -1313,8 +1335,8 @@ function Textbox.new(section, text, placeholder, callback)
     self._theme:Register(label, function(l, t) l.TextColor3 = t.Text end)
 
     local boxFrame = Util.Create("Frame", {
-        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0),
-        Size = UDim2.new(0.46, 0, 0, 36), BackgroundColor3 = theme.SecondaryLight,
+        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -4, 0.5, 0),
+        Size = UDim2.new(0.46, -2, 0, 36), BackgroundColor3 = theme.SecondaryLight,
         BackgroundTransparency = theme.ControlT,
         BorderSizePixel = 0, Parent = row,
     })
@@ -1472,7 +1494,7 @@ function Keybind.new(section, text, defaultKey, callback)
     local row = self:_makeRow(40)
     self.Instance = row
     self._baseHeight = 40
-    self._menuGap = Spacing[2]
+    self._menuGap = 12
 
     local label = Util.Create("TextLabel", {
         BackgroundTransparency = 1, Size = UDim2.new(0.6, 0, 1, 0),
@@ -1482,7 +1504,7 @@ function Keybind.new(section, text, defaultKey, callback)
     self._theme:Register(label, function(l, t) l.TextColor3 = t.Text end)
 
     local keyBtn = Util.Create("TextButton", {
-        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -4, 0.5, 0),
         Size = UDim2.new(0, 110, 0, 34), BackgroundColor3 = theme.SecondaryLight,
         BackgroundTransparency = theme.ControlT,
         AutoButtonColor = false, BorderSizePixel = 0, Font = CONFIG.Font,
@@ -1718,7 +1740,7 @@ function Tab.new(window, name, iconName)
         ScrollBarImageColor3 = Color3.fromRGB(170, 170, 175), ScrollBarImageTransparency = 0.4,
         CanvasSize = UDim2.new(0, 0, 0, 0), Visible = false, Parent = window.ContentContainer,
     })
-    Util.Padding(page, nil, { Top = Spacing[1], Bottom = Spacing[2], Left = Spacing[1], Right = Spacing[2] })
+    Util.Padding(page, nil, { Top = Spacing[1], Bottom = Spacing[2], Left = Spacing[1], Right = Spacing[4] })
     self.Content = page
     local contentLayout = LayoutManager.VerticalList(page, Spacing[3] + 2, Enum.HorizontalAlignment.Center)
     LayoutManager.BindScrollCanvas(page, contentLayout)
