@@ -898,6 +898,8 @@ function Dropdown.new(section, text, options, callback, default)
     local theme = self._theme:Get()
     local row = self:_makeRow(40)
     self.Instance = row
+    self._baseHeight = 40
+    self._menuGap = Spacing[2]
 
     local label = Util.Create("TextLabel", {
         BackgroundTransparency = 1,
@@ -991,13 +993,15 @@ function Dropdown:_buildMenu()
 
     local menu = Util.Create("Frame", {
         Name = "DropdownMenu",
+        AnchorPoint = Vector2.new(1, 0),
+        Position = UDim2.new(1, 0, 0, self._baseHeight + self._menuGap),
         BackgroundColor3 = theme.Primary,
         BackgroundTransparency = 0,
         BorderSizePixel = 0,
-        Size = UDim2.new(0, self._trigger.AbsoluteSize.X, 0, 0),
+        Size = UDim2.new(0.46, 0, 0, 0),
         ClipsDescendants = true,
-        ZIndex = Z.Overlay + 1,
-        Parent = self._overlay.Container,
+        ZIndex = Z.Trigger + 8,
+        Parent = self.Instance,
     })
     Util.Corner(Spacing[3], menu)
     local menuStroke = Util.Stroke(menu, theme.Border, 1, 0.12)
@@ -1017,7 +1021,7 @@ function Dropdown:_buildMenu()
         ScrollBarImageColor3 = Color3.fromRGB(170, 170, 175),
         ScrollBarImageTransparency = 0.4,
         CanvasSize = UDim2.new(0, 0, 0, 0),
-        ZIndex = Z.Overlay + 2, Parent = menu,
+        ZIndex = Z.Trigger + 9, Parent = menu,
     })
     local layout = LayoutManager.VerticalList(scroll, Spacing[1] / 2, Enum.HorizontalAlignment.Center)
     Util.Padding(scroll, Spacing[1])
@@ -1032,11 +1036,11 @@ function Dropdown:_buildMenu()
             AutoButtonColor = false, BorderSizePixel = 0,
             Font = CONFIG.Font, Text = tostring(opt), TextSize = 16,
             TextColor3 = isSel and theme.AccentText or theme.Text, LayoutOrder = i,
-            ZIndex = Z.Overlay + 3, Parent = scroll,
+            ZIndex = Z.Trigger + 10, Parent = scroll,
         })
         Util.Corner(Spacing[2], optBtn)
         self._theme:Register(optBtn, function(b, t)
-            local selectedNow = (opt == self._value)
+            local selectedNow = self._multiple and type(self._value) == "table" and table.find(self._value, opt) ~= nil or (opt == self._value)
             b.BackgroundColor3 = selectedNow and t.Accent or t.SecondaryLight
             b.BackgroundTransparency = 0
             b.TextColor3 = selectedNow and t.AccentText or t.Text
@@ -1064,12 +1068,15 @@ function Dropdown:_buildMenu()
     self._menuScroll = scroll
 end
 
+function Dropdown:_targetMenuHeight()
+    return math.min(#self._options * 32 + Spacing[2], 200)
+end
+
 function Dropdown:_positionMenu()
     if not self._menu then return end
-    local pos  = self._trigger.AbsolutePosition
-    local size = self._trigger.AbsoluteSize
-    self._menu.Position = UDim2.new(0, pos.X, 0, pos.Y + size.Y + Spacing[1])
-    self._menu.Size = UDim2.new(0, size.X, 0, self._menu.Size.Y.Offset)
+    self._menu.AnchorPoint = Vector2.new(1, 0)
+    self._menu.Position = UDim2.new(1, 0, 0, self._baseHeight + self._menuGap)
+    self._menu.Size = UDim2.new(0.46, 0, 0, self._menu.Size.Y.Offset)
 end
 
 function Dropdown:_isPointInsideOverlay(point)
@@ -1083,18 +1090,19 @@ function Dropdown:_toggleOpen(force)
     if self._open then
         self:_buildMenu()
         self:_positionMenu()
-        local count = #self._options
-        local targetH = math.min(count * 32 + Spacing[2], 200)
-        Util.Tween(self._menu, { Size = UDim2.new(0, self._trigger.AbsoluteSize.X, 0, targetH) })
+        local targetH = self:_targetMenuHeight()
+        Util.Tween(self.Instance, { Size = UDim2.new(1, 0, 0, self._baseHeight + self._menuGap + targetH) }, 0.2)
+        Util.Tween(self._menu, { Size = UDim2.new(0.46, 0, 0, targetH) }, 0.18)
         Util.Tween(self._arrow, { Rotation = 180 })
 
         self._overlay:Open(self, function() self:_toggleOpen(false) end)
     else
         Util.Tween(self._arrow, { Rotation = 0 })
+        Util.Tween(self.Instance, { Size = UDim2.new(1, 0, 0, self._baseHeight) }, 0.18)
         if self._menu then
             local menu = self._menu
             self._menu = nil
-            Util.Tween(menu, { Size = UDim2.new(0, menu.Size.X.Offset, 0, 0) })
+            Util.Tween(menu, { Size = UDim2.new(0.46, 0, 0, 0) }, 0.14)
             task.delay(CONFIG.AnimationDuration, function()
                 if menu then menu:Destroy() end
             end)
@@ -1105,8 +1113,14 @@ end
 
 function Dropdown:Set(value)
     self._value = value
-    self._selectedLabel.Text = tostring(value)
-    if self._open and not self._closingFromOption then self:_buildMenu(); self:_positionMenu() end
+    self._selectedLabel.Text = self:_formatValue(value)
+    if self._open and not self._closingFromOption then
+        self:_buildMenu()
+        self:_positionMenu()
+        local targetH = self:_targetMenuHeight()
+        self._menu.Size = UDim2.new(0.46, 0, 0, targetH)
+        self.Instance.Size = UDim2.new(1, 0, 0, self._baseHeight + self._menuGap + targetH)
+    end
     if self._callback then task.spawn(self._callback, value) end
     self.Changed:Fire(value)
 end
@@ -1127,7 +1141,13 @@ function Dropdown:Refresh(newValues)
         self._value = self._options[1]
     end
     self._selectedLabel.Text = self:_formatValue(self._value)
-    if self._open then self:_buildMenu(); self:_positionMenu() end
+    if self._open then
+        self:_buildMenu()
+        self:_positionMenu()
+        local targetH = self:_targetMenuHeight()
+        self._menu.Size = UDim2.new(0.46, 0, 0, targetH)
+        self.Instance.Size = UDim2.new(1, 0, 0, self._baseHeight + self._menuGap + targetH)
+    end
 end
 
 function Dropdown:Destroy()
@@ -1151,20 +1171,51 @@ function Slider.new(section, text, min, max, default, callback)
     self.Instance = row
 
     local label = Util.Create("TextLabel", {
-        BackgroundTransparency = 1, Size = UDim2.new(1, -60, 0, 22),
+        BackgroundTransparency = 1, Size = UDim2.new(1, -86, 0, 26),
         Font = CONFIG.Font, Text = text, TextSize = 18, TextColor3 = theme.Text,
         TextXAlignment = Enum.TextXAlignment.Left, Parent = row,
     })
     self._theme:Register(label, function(l, t) l.TextColor3 = t.Text end)
 
-    local valueLabel = Util.Create("TextLabel", {
-        BackgroundTransparency = 1, AnchorPoint = Vector2.new(1, 0),
-        Position = UDim2.new(1, 0, 0, 0), Size = UDim2.new(0, 60, 0, 22),
-        Font = CONFIG.FontBold, Text = tostring(self._value), TextSize = 18,
-        TextColor3 = theme.Accent, TextXAlignment = Enum.TextXAlignment.Right, Parent = row,
+    local valueLabel = Util.Create("TextBox", {
+        AnchorPoint = Vector2.new(1, 0),
+        Position = UDim2.new(1, 0, 0, 0),
+        Size = UDim2.new(0, 74, 0, 28),
+        BackgroundColor3 = theme.SecondaryLight,
+        BackgroundTransparency = theme.ControlT,
+        BorderSizePixel = 0,
+        Font = CONFIG.FontBold, Text = tostring(self._value), TextSize = 15,
+        TextColor3 = Color3.fromRGB(0, 0, 0),
+        PlaceholderColor3 = theme.TextMuted,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        ClearTextOnFocus = false,
+        Parent = row,
     })
+    Util.Corner(Spacing[2], valueLabel)
+    local valueStroke = Util.Stroke(valueLabel, theme.Border, 1, 0.32)
     self._valueLabel = valueLabel
-    self._theme:Register(valueLabel, function(l, t) l.TextColor3 = t.Accent end)
+    self._theme:Register(valueLabel, function(b, t)
+        b.BackgroundColor3 = t.SecondaryLight
+        b.BackgroundTransparency = t.ControlT
+        b.TextColor3 = Color3.fromRGB(0, 0, 0)
+        b.PlaceholderColor3 = t.TextMuted
+    end)
+    self._theme:Register(valueStroke, function(st, t)
+        st.Color = t.Border
+        st.Transparency = 0.32
+    end)
+    self._cleaner:Add(valueLabel.Focused:Connect(function()
+        Util.Tween(valueStroke, { Transparency = 0.08 }, 0.12)
+    end))
+    self._cleaner:Add(valueLabel.FocusLost:Connect(function()
+        local typed = tonumber(valueLabel.Text)
+        if typed then
+            self:Set(typed)
+        else
+            valueLabel.Text = tostring(self._value)
+        end
+        Util.Tween(valueStroke, { Transparency = 0.32 }, 0.12)
+    end))
 
     local track = Util.Create("Frame", {
         AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, -6),
@@ -1217,15 +1268,20 @@ function Slider.new(section, text, min, max, default, callback)
 end
 
 function Slider:_render()
-    local rel = (self._value - self._min) / (self._max - self._min)
+    local rel = self._max == self._min and 0 or ((self._value - self._min) / (self._max - self._min))
+    rel = math.clamp(rel, 0, 1)
     Util.Tween(self._fill, { Size = UDim2.new(rel, 0, 1, 0) }, 0.08)
     Util.Tween(self._knob, { Position = UDim2.new(rel, 0, 0.5, 0) }, 0.08)
     self._valueLabel.Text = tostring(self._value)
 end
 
 function Slider:Set(value)
-    value = math.clamp(value, self._min, self._max)
-    if value == self._value then return end
+    value = tonumber(value) or self._value
+    value = math.floor(math.clamp(value, self._min, self._max) + 0.5)
+    if value == self._value then
+        self._valueLabel.Text = tostring(self._value)
+        return
+    end
     self._value = value
     self:_render()
     if self._callback then task.spawn(self._callback, value) end
@@ -1244,6 +1300,8 @@ function Textbox.new(section, text, placeholder, callback)
     local theme = self._theme:Get()
     local row = self:_makeRow(40)
     self.Instance = row
+    self._baseHeight = 40
+    self._menuGap = Spacing[2]
 
     local label = Util.Create("TextLabel", {
         BackgroundTransparency = 1, Size = UDim2.new(0.5, -Spacing[3], 1, 0),
@@ -1411,6 +1469,8 @@ function Keybind.new(section, text, defaultKey, callback)
     local theme = self._theme:Get()
     local row = self:_makeRow(40)
     self.Instance = row
+    self._baseHeight = 40
+    self._menuGap = Spacing[2]
 
     local label = Util.Create("TextLabel", {
         BackgroundTransparency = 1, Size = UDim2.new(0.6, 0, 1, 0),
