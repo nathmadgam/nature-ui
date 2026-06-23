@@ -1682,7 +1682,7 @@ local Window = {}
 Window.__index = Window
 
 local MIN_W, MIN_H = 540, 360
-local BACKDROP_GAP = 56
+local BACKDROP_GAP = 64
 local BACKDROP_DRAG_EXTRA = 30
 
 function Window.new(library, opts)
