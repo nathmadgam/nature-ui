@@ -55,34 +55,34 @@ local THEMES = {}
 
 THEMES.Nature = {
     Name           = "Nature",
-    BackdropTop    = Color3.fromRGB(126, 206, 146),
-    BackdropBottom = Color3.fromRGB(220, 244, 228),
-    BackdropT      = 0.0,
-    Primary        = Color3.fromRGB(249, 253, 250),
-    PrimaryLight   = Color3.fromRGB(255, 255, 255),
-    Secondary      = Color3.fromRGB(244, 250, 246),
-    SecondaryLight = Color3.fromRGB(236, 246, 240),
-    ControlHover   = Color3.fromRGB(228, 241, 233),
-    ControlPressed = Color3.fromRGB(218, 234, 225),
-    PanelTop       = Color3.fromRGB(248, 253, 249),
-    PanelBottom    = Color3.fromRGB(240, 248, 243),
-    PanelT         = 0.03,
-    PanelTopT      = 0.00,
-    PanelBottomT   = 0.02,
-    ControlT       = 0.00,
-    ControlTopT    = 0.00,
-    ControlBottomT = 0.04,
-    Accent         = Color3.fromRGB(74, 176, 98),
-    AccentTop      = Color3.fromRGB(74, 176, 98),
-    AccentBottom   = Color3.fromRGB(74, 176, 98),
-    AccentDim      = Color3.fromRGB(134, 206, 151),
+    BackdropTop    = Color3.fromRGB(188, 242, 201),
+    BackdropBottom = Color3.fromRGB(236, 255, 242),
+    BackdropT      = 0.16,
+    Primary        = Color3.fromRGB(235, 252, 240),
+    PrimaryLight   = Color3.fromRGB(249, 255, 251),
+    Secondary      = Color3.fromRGB(219, 244, 228),
+    SecondaryLight = Color3.fromRGB(232, 250, 238),
+    ControlHover   = Color3.fromRGB(211, 239, 222),
+    ControlPressed = Color3.fromRGB(198, 229, 212),
+    PanelTop       = Color3.fromRGB(228, 250, 235),
+    PanelBottom    = Color3.fromRGB(197, 234, 211),
+    PanelT         = 0.10,
+    PanelTopT      = 0.08,
+    PanelBottomT   = 0.22,
+    ControlT       = 0.08,
+    ControlTopT    = 0.10,
+    ControlBottomT = 0.24,
+    Accent         = Color3.fromRGB(72, 190, 104),
+    AccentTop      = Color3.fromRGB(98, 217, 126),
+    AccentBottom   = Color3.fromRGB(49, 164, 84),
+    AccentDim      = Color3.fromRGB(142, 224, 163),
     AccentText     = Color3.fromRGB(255, 255, 255),
-    Text           = Color3.fromRGB(31, 49, 39),
-    TextDim        = Color3.fromRGB(78, 102, 88),
-    TextMuted      = Color3.fromRGB(128, 154, 140),
-    Border         = Color3.fromRGB(197, 219, 206),
+    Text           = Color3.fromRGB(23, 50, 34),
+    TextDim        = Color3.fromRGB(71, 106, 83),
+    TextMuted      = Color3.fromRGB(118, 158, 132),
+    Border         = Color3.fromRGB(163, 220, 179),
     BorderGlow     = Color3.fromRGB(255, 255, 255),
-    ToggleOff      = Color3.fromRGB(208, 222, 214),
+    ToggleOff      = Color3.fromRGB(184, 213, 196),
     ToggleThumb    = Color3.fromRGB(255, 255, 255),
 }
 
@@ -90,36 +90,69 @@ THEMES.Apple = {
     Name           = "Apple",
     BackdropTop    = Color3.fromRGB(228, 230, 236),
     BackdropBottom = Color3.fromRGB(244, 245, 248),
-    BackdropT      = 0.02,
-    Primary        = Color3.fromRGB(250, 251, 253),
+    BackdropT      = 0.14,
+    Primary        = Color3.fromRGB(247, 249, 253),
     PrimaryLight   = Color3.fromRGB(255, 255, 255),
-    Secondary      = Color3.fromRGB(246, 247, 250),
-    SecondaryLight = Color3.fromRGB(236, 238, 243),
-    ControlHover   = Color3.fromRGB(228, 230, 236),
-    ControlPressed = Color3.fromRGB(218, 221, 229),
-    PanelTop       = Color3.fromRGB(251, 252, 254),
-    PanelBottom    = Color3.fromRGB(244, 246, 249),
-    PanelT         = 0.03,
-    PanelTopT      = 0.00,
-    PanelBottomT   = 0.02,
-    ControlT       = 0.00,
-    ControlTopT    = 0.00,
-    ControlBottomT = 0.04,
+    Secondary      = Color3.fromRGB(235, 238, 245),
+    SecondaryLight = Color3.fromRGB(245, 247, 252),
+    ControlHover   = Color3.fromRGB(229, 233, 242),
+    ControlPressed = Color3.fromRGB(218, 224, 235),
+    PanelTop       = Color3.fromRGB(249, 251, 255),
+    PanelBottom    = Color3.fromRGB(225, 231, 242),
+    PanelT         = 0.08,
+    PanelTopT      = 0.06,
+    PanelBottomT   = 0.18,
+    ControlT       = 0.06,
+    ControlTopT    = 0.08,
+    ControlBottomT = 0.18,
     Accent         = Color3.fromRGB(10, 132, 255),
-    AccentTop      = Color3.fromRGB(10, 132, 255),
-    AccentBottom   = Color3.fromRGB(10, 132, 255),
+    AccentTop      = Color3.fromRGB(62, 159, 255),
+    AccentBottom   = Color3.fromRGB(0, 104, 220),
     AccentDim      = Color3.fromRGB(94, 174, 255),
     AccentText     = Color3.fromRGB(255, 255, 255),
     Text           = Color3.fromRGB(28, 28, 30),
-    TextDim        = Color3.fromRGB(86, 88, 92),
-    TextMuted      = Color3.fromRGB(140, 142, 148),
-    Border         = Color3.fromRGB(209, 212, 219),
+    TextDim        = Color3.fromRGB(83, 86, 93),
+    TextMuted      = Color3.fromRGB(137, 142, 153),
+    Border         = Color3.fromRGB(198, 207, 221),
     BorderGlow     = Color3.fromRGB(255, 255, 255),
-    ToggleOff      = Color3.fromRGB(214, 217, 224),
+    ToggleOff      = Color3.fromRGB(205, 211, 222),
     ToggleThumb    = Color3.fromRGB(255, 255, 255),
 }
 
-local THEME_ORDER = { "Nature", "Apple" }
+THEMES.Galaxy = {
+    Name           = "Galaxy",
+    BackdropTop    = Color3.fromRGB(77, 53, 132),
+    BackdropBottom = Color3.fromRGB(31, 24, 60),
+    BackdropT      = 0.08,
+    Primary        = Color3.fromRGB(50, 39, 82),
+    PrimaryLight   = Color3.fromRGB(76, 62, 120),
+    Secondary      = Color3.fromRGB(58, 46, 94),
+    SecondaryLight = Color3.fromRGB(84, 69, 132),
+    ControlHover   = Color3.fromRGB(95, 78, 148),
+    ControlPressed = Color3.fromRGB(70, 55, 114),
+    PanelTop       = Color3.fromRGB(68, 53, 116),
+    PanelBottom    = Color3.fromRGB(35, 29, 68),
+    PanelT         = 0.11,
+    PanelTopT      = 0.08,
+    PanelBottomT   = 0.26,
+    ControlT       = 0.10,
+    ControlTopT    = 0.10,
+    ControlBottomT = 0.24,
+    Accent         = Color3.fromRGB(171, 112, 255),
+    AccentTop      = Color3.fromRGB(199, 145, 255),
+    AccentBottom   = Color3.fromRGB(119, 83, 232),
+    AccentDim      = Color3.fromRGB(198, 161, 255),
+    AccentText     = Color3.fromRGB(255, 255, 255),
+    Text           = Color3.fromRGB(248, 244, 255),
+    TextDim        = Color3.fromRGB(213, 202, 235),
+    TextMuted      = Color3.fromRGB(169, 154, 199),
+    Border         = Color3.fromRGB(132, 108, 178),
+    BorderGlow     = Color3.fromRGB(237, 226, 255),
+    ToggleOff      = Color3.fromRGB(81, 71, 113),
+    ToggleThumb    = Color3.fromRGB(255, 255, 255),
+}
+
+local THEME_ORDER = { "Nature", "Apple", "Galaxy" }
 
 local DEFAULT_THEME = THEMES.Nature
 
@@ -216,9 +249,23 @@ function Util.GlassStroke(parent, borderColor, glowColor, thickness)
     local stroke = Util.Create("UIStroke", {
         Color = borderColor or DEFAULT_THEME.Border,
         Thickness = thickness or 1,
-        Transparency = 0.22,
+        Transparency = 0.18,
         ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
         Parent = parent,
+    })
+    Util.Create("UIGradient", {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, glowColor or Color3.fromRGB(255, 255, 255)),
+            ColorSequenceKeypoint.new(0.45, borderColor or DEFAULT_THEME.Border),
+            ColorSequenceKeypoint.new(1, borderColor or DEFAULT_THEME.Border),
+        }),
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.10),
+            NumberSequenceKeypoint.new(0.45, 0.28),
+            NumberSequenceKeypoint.new(1, 0.48),
+        }),
+        Rotation = 90,
+        Parent = stroke,
     })
     return stroke
 end
@@ -226,7 +273,7 @@ function Util.InnerHighlight(parent)
     local hl = Util.Create("Frame", {
         Name = "InnerHighlight",
         BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 0.86,
+        BackgroundTransparency = 0.78,
         BorderSizePixel = 0,
         Position = UDim2.new(0, 0, 0, 0),
         Size = UDim2.new(1, 0, 0, 1.5),
@@ -258,7 +305,15 @@ function Util.ChipGlass(frame, themeMgr)
     end)
     themeMgr:Register(stroke, function(st, th)
         st.Color = th.Border
-        st.Transparency = 0.22
+        st.Transparency = 0.18
+        local sg = st:FindFirstChildOfClass("UIGradient")
+        if sg then
+            sg.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, th.BorderGlow),
+                ColorSequenceKeypoint.new(0.45, th.Border),
+                ColorSequenceKeypoint.new(1, th.Border),
+            })
+        end
     end)
     return grad, stroke
 end
@@ -283,7 +338,15 @@ function Util.ChipSheen(frame, themeMgr)
     end)
     themeMgr:Register(stroke, function(st, th)
         st.Color = th.Border
-        st.Transparency = 0.22
+        st.Transparency = 0.18
+        local sg = st:FindFirstChildOfClass("UIGradient")
+        if sg then
+            sg.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, th.BorderGlow),
+                ColorSequenceKeypoint.new(0.45, th.Border),
+                ColorSequenceKeypoint.new(1, th.Border),
+            })
+        end
     end)
     return grad, stroke
 end
@@ -1506,7 +1569,7 @@ function Paragraph.new(section, title, body)
     end)
     self._theme:Register(paraStroke, function(st, t)
         st.Color = t.Border
-        st.Transparency = 0.22
+        st.Transparency = 0.18
     end)
 
     local titleLabel = Util.Create("TextLabel", {
@@ -1923,22 +1986,27 @@ function Window.new(library, opts)
     local main = Util.Create("Frame", {
         Name = "MainWindow", AnchorPoint = Vector2.new(0.5, 0.5),
         Position = UDim2.new(0.5, 0, 0.5, 0), Size = UDim2.new(0, 720, 0, 470),
-        BackgroundColor3 = theme.PanelTop, BackgroundTransparency = theme.PanelT * 0.35,
+        BackgroundColor3 = theme.PanelTop, BackgroundTransparency = theme.PanelT,
         BorderSizePixel = 0,
         ClipsDescendants = true,
         ZIndex = Z.Window + 1, Parent = gui,
     })
     Util.Corner(Spacing[4] + 2, main)
 
-    local mainGrad = Util.GlassGradient(main, theme.PanelTop, theme.PanelBottom, 0.0, 0.14, 90)
+    local mainGrad = Util.GlassGradient(main, theme.PanelTop, theme.PanelBottom, theme.PanelTopT, theme.PanelBottomT, 90)
     self.Main = main
     self._overlay:BindTo(main)
     self._theme:Register(main, function(m, t)
         m.BackgroundColor3 = t.PanelTop
-        m.BackgroundTransparency = t.PanelT * 0.35
+        m.BackgroundTransparency = t.PanelT
     end)
     self._theme:Register(mainGrad, function(g, t)
         g.Color = ColorSequence.new(t.PanelTop, t.PanelBottom)
+        g.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, t.PanelTopT or 0.06),
+            NumberSequenceKeypoint.new(0.55, ((t.PanelTopT or 0.06) + (t.PanelBottomT or 0.18)) / 2),
+            NumberSequenceKeypoint.new(1, t.PanelBottomT or 0.18),
+        })
     end)
 
     -- No backdrop tracking: removes the green outer/corner marks entirely.
@@ -1969,7 +2037,7 @@ function Window.new(library, opts)
     local titleLabel = Util.Create("TextLabel", {
         BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.X,
         Size = UDim2.new(0, 0, 1, 0), Font = CONFIG.FontBold,
-        Text = "Nature", TextSize = 24, TextColor3 = theme.Text,
+        Text = opts.Title or "Nature", TextSize = 24, TextColor3 = theme.Text,
         TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 1, Parent = titleHolder,
     })
     self._titleLabel = titleLabel
@@ -1978,7 +2046,7 @@ function Window.new(library, opts)
     local subtitleLabel = Util.Create("TextLabel", {
         BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.X,
         Size = UDim2.new(0, 0, 1, 0), Font = CONFIG.FontRegular,
-        Text = "Premium", TextSize = 24, TextColor3 = theme.TextDim,
+        Text = opts.Subtitle or "Basic", TextSize = 24, TextColor3 = theme.TextDim,
         TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 2, Parent = titleHolder,
     })
     self._subtitleLabel = subtitleLabel
@@ -2041,7 +2109,7 @@ function Window.new(library, opts)
     end)
     self._theme:Register(sidebarStroke, function(st, t)
         st.Color = t.Border
-        st.Transparency = 0.22
+        st.Transparency = 0.18
     end)
 
     local tabList = Util.Create("Frame", {
@@ -2075,7 +2143,7 @@ function Window.new(library, opts)
     end)
     self._theme:Register(contentStroke, function(st, t)
         st.Color = t.Border
-        st.Transparency = 0.22
+        st.Transparency = 0.18
     end)
 
     local contentContainer = Util.Create("Frame", {
@@ -2295,8 +2363,8 @@ function Window:AddTab(name, iconName)
     return tab
 end
 
-function Window:SetTitle(_) if self._titleLabel then self._titleLabel.Text = "Nature" end end
-function Window:SetSubtitle(_) if self._subtitleLabel then self._subtitleLabel.Text = "Premium" end end
+function Window:SetTitle(text) if self._titleLabel then self._titleLabel.Text = tostring(text or "Nature") end end
+function Window:SetSubtitle(text) if self._subtitleLabel then self._subtitleLabel.Text = tostring(text or "Basic") end end
 
 function Window:ToggleMinimize()
     self._overlay:CloseAll()
@@ -2357,7 +2425,7 @@ end
 function Library:CreateWindow(opts)
     local window = Window.new(self, opts)
     table.insert(self._windows, window)
-    Logger.Init("Window created:", "Nature Premium")
+    Logger.Init("Window created:", opts.Title or "Nature", opts.Subtitle or "Basic")
     return window
 end
 
